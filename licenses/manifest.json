@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "path": "LICENSE",
+      "sha256": "bb9162c1401aea059b18f90a07a9918de0d90f9fd3b0263c6692645afe3b851e"
+    },
+    {
+      "path": "licenses/matt-pocock-skills.txt",
+      "sha256": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5"
+    },
+    {
+      "path": "licenses/capability-core-adapters.txt",
+      "sha256": "c9444ec90809af382ed9f92fb7f0c52ff81dc3413a5ee814aa64f0e6bbc27a51"
+    },
+    {
+      "path": "skills/depth-lock/LICENSE",
+      "sha256": "bb9162c1401aea059b18f90a07a9918de0d90f9fd3b0263c6692645afe3b851e"
+    },
+    {
+      "path": "vendor/superpowers-6.4.1/LICENSE",
+      "sha256": "a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400"
+    }
+  ]
+}

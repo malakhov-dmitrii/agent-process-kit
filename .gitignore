@@ -1,0 +1,16 @@
+node_modules/
+.agent/
+.work/
+.omx/
+coverage/
+dist/
+*.tgz
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+harness/runtime-state/
+harness/logs/
+harness/checkpoints/
+harness/transactions/

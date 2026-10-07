@@ -1,0 +1,5 @@
+* text=auto eol=lf
+# Preserve upstream snapshot and license bytes used by provenance checks.
+licenses/** -text -whitespace
+vendor/** -text -whitespace
+skills/** -text -whitespace
