@@ -1,13 +1,16 @@
-What user-visible behavior changes?
+What changes for someone installing or using `finish-task`?
 
-What failing case does this address, and what passes now?
+What current friction or failure does this address?
 
-Which docs, public contracts or recovery paths changed?
+What evidence proves the new behavior?
 
-Verification performed:
+Which public docs, references, licenses or migration paths changed?
 
-- [ ] Zero-install starter and documentation checked
-- [ ] `npm --prefix optional-automation run verify` when runtime changed
-- [ ] `npm --prefix optional-automation run pack:check` when runtime/package changed
-- [ ] Relevant negative/recovery cases
-- [ ] No private runtime state or secrets
+Verification:
+
+- [ ] `node scripts/check.mjs`
+- [ ] `node --test tests/*.test.mjs`
+- [ ] `node scripts/install-smoke.mjs`
+- [ ] Clean-agent behavior scenario when workflow behavior changed
+- [ ] Rendered README checked
+- [ ] No private state, credentials or generated install directories

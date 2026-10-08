@@ -1,5 +1,0 @@
-{"type":"object","additionalProperties":false,"required":["verdict","summary","blockers"],
- "properties":{"verdict":{"type":"string","enum":["APPROVE","REJECT"]},"summary":{"type":"string"},
-  "blockers":{"type":"array","items":{"type":"object","additionalProperties":false,
-   "required":["kind","file","line","why"],"properties":{"kind":{"type":"string","enum":["defect","expansion"]},
-   "file":{"type":"string"},"line":{"type":["integer","null"]},"why":{"type":"string"}}}}}}

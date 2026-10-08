@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "modelRouting": {},
-  "sessions": {
-    "checkpointAfterActiveMinutes": 45,
-    "checkpointAfterToolCalls": 100,
-    "checkpointAfterCompacts": 2
-  }
-}

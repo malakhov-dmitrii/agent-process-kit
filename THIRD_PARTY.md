@@ -1,13 +1,13 @@
 # Third-party notices
 
-Project-authored code and text are MIT licensed under [LICENSE](LICENSE). Included skill snapshots retain their upstream copyrights and MIT notices.
+Project-authored code and text are MIT licensed under [LICENSE](LICENSE). Parts of the `finish-task` references adapt concepts and wording from these MIT-licensed sources:
 
-| Included component | Origin | License |
+| Adapted material | Origin | License copy |
 |---|---|---|
-| codebase-design and writing-for-agents | [Matt Pocock / skills](https://github.com/mattpocock/skills) | [MIT](licenses/matt-pocock-skills.txt) |
-| Capability Core + Adapters skills and templates | [Capability Core + Adapters contributors](https://github.com/malakhov-dmitrii/capability-core-adapters) | [MIT](licenses/capability-core-adapters.txt) |
-| depth-lock | [Dmitrii Malakhov / depth-lock](https://github.com/malakhov-dmitrii/depth-lock) | [MIT](skills/depth-lock/LICENSE) |
+| Deep modules, seams, context pointers and progressive disclosure | [Matt Pocock / skills](https://github.com/mattpocock/skills) | [MIT](licenses/matt-pocock-skills.txt) |
+| Capability ownership, authority, lifecycle and adapter placement | [Capability Core + Adapters](https://github.com/malakhov-dmitrii/capability-core-adapters) | [MIT](licenses/capability-core-adapters.txt) |
+| Scope lock, review caps and checkpoint discipline | [Dmitrii Malakhov / depth-lock](https://github.com/malakhov-dmitrii/depth-lock) | [MIT](licenses/depth-lock.txt) |
 
-The snapshots came from the author's installed environment and may include local adaptations. `licenses/SHA256SUMS` records the included license files.
+The sources are references, not bundled dependencies. `licenses/SHA256SUMS` records the included license files.
 
-[Superpowers](https://github.com/obra/superpowers) is recommended as an optional upstream workflow library. It is not copied or installed by this repository.
+The redesign research also studies mattpocock/skills, garrytan/gstack, obra/superpowers, Vercel's skills ecosystem and Anthropic's skills repository. Research links do not copy or redistribute those projects.

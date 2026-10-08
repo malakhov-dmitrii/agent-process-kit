@@ -1,26 +1,93 @@
 # Agent Process Kit
 
-[English](README.md) · [Как это работает](docs/how-it-works.md) · [Как выбирать скиллы](docs/choosing-skills.md)
+## Дайте кодинг-агенту финишную черту.
 
-Копируемая рабочая договорённость для кодинг-агентов: прочитать реальный проект, согласовать объём, проверить поведение, пройти пользовательский сценарий и честно назвать этап доставки.
+[![CI](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml)
+[English](README.md) · [Как это работает](docs/how-it-works.md) · [Совместимость](docs/compatibility.md)
 
-В основном варианте нет установщика, npm-пакета, демона, хуков и обязательной модели.
+`finish-task` проводит одно конкретное изменение в репозитории от первого чтения к проверяемому результату. Скилл фиксирует, что значит «готово», удерживает scope, сначала делает баг или acceptance красным, проверяет реальный пользовательский путь и отдельно называет локальную проверку, commit, push, deploy и production proof.
 
-## Начать за две минуты
+После установки это одна обычная папка с `SKILL.md`. Нет демона, хуков, аккаунта, фонового процесса, телеметрии и runtime-зависимости.
 
-1. Скопируйте [starter/AGENTS.md](starter/AGENTS.md) в проект, где ещё нет инструкций для агентов. Если `AGENTS.md` или `CLAUDE.md` уже есть, объедините нужные правила и сохраните более строгие требования проекта.
-2. Скопируйте [starter/task-journal.md](starter/task-journal.md) в папку проектной документации для нетривиальной задачи, которой нужен устойчивый scope и статус.
-3. Добавьте только нужные [скиллы](docs/choosing-skills.md). Папку скилла можно скопировать в каталог скиллов агента или передавать путь к `SKILL.md` явно.
-4. Поставьте задачу агенту.
+## Попробуйте на реальной задаче
 
-Пример запроса:
+Установите скилл в проект:
 
-> Прочитай AGENTS.md и локальные инструкции для кода, который будешь менять. Сначала изучи реализацию и предложи наблюдаемые критерии приёмки. Продуктовые и архитектурные развилки обсуди со мной. После согласования реализуй весь объём, проверь реальный пользовательский сценарий, обнови затронутые документы и назови точный этап доставки.
+```sh
+npx skills add malakhov-dmitrii/agent-process-kit --skill finish-task
+```
 
-На этом базовая настройка закончена.
+Дайте агенту настоящую задачу:
 
-В репозитории лежат готовые `AGENTS.md`, шаблон журнала и пять независимых скиллов: depth-lock, Capability Core + Adapters, capability contract, codebase design и writing for agents. Более широкий набор [Superpowers](https://github.com/obra/superpowers) подключается из upstream и не копируется сюда.
+> Use `finish-task` on this: исправь дубли строк в CSV export. Не выходи за export path, сначала докажи баг, затем пройди реальный export flow и остановись на локальной проверке.
 
-Исполнимый runtime для нескольких агентов и длинных handoff-сценариев находится в [optional-automation](optional-automation/README.md). Обычному пользователю он не нужен.
+Первый полезный результат — **Finish Card**:
 
-Лицензии и происхождение файлов: [THIRD_PARTY.md](THIRD_PARTY.md) и [docs/provenance.md](docs/provenance.md).
+```text
+FINISH CARD
+
+Цель              В CSV export каждая логическая строка встречается один раз.
+Scope             Только pagination и deduplication экспорта.
+Acceptance        Красная репродукция, regression, реальный export, gates проекта.
+Граница доставки  Локальная проверка. Без заявлений про push или deploy.
+```
+
+В конце агент закрывает ту же карточку свежими доказательствами и одним честным receipt:
+
+```text
+LOCAL-ONLY: Дубли в экспорте исправлены.
+
+Проверено: failing reproduction, regression, затронутые checks, реальный export flow.
+Не заявлено: commit, push, deploy, production behavior.
+```
+
+Это и есть продукт. Перед полезной работой не нужно настраивать отдельный framework.
+
+## Как это работает
+
+```text
+запрос
+  → Finish Card
+  → failing reproduction или наблюдаемый acceptance
+  → полное изменение в согласованном scope
+  → gates проекта + реальный пользовательский путь
+  → evidence receipt на разрешённой границе доставки
+```
+
+- **Баг:** reproduce → причина → failing regression → fix → повтор реального пути.
+- **Фича:** наблюдаемый acceptance → scope → implementation → acceptance и project gates.
+- **Архитектура:** ownership, authority, lifecycle и module seams до широких правок.
+- **Доставка:** local, commit, push, deploy и production verification остаются разными фактами.
+
+Для длинной задачи скилл сохраняет Finish Card в принятом проектом месте или `.agent/tasks/<slug>.md`. Одношаговая правка может оставить карточку в чате.
+
+Точная последовательность: [workflow и evidence model](docs/how-it-works.md).
+
+## Установка, обновление, удаление
+
+Основная команда использует открытый установщик [`skills`](https://github.com/vercel-labs/skills) и предлагает выбрать найденного агента. Явная установка для Codex и Claude Code:
+
+```sh
+npx skills add malakhov-dmitrii/agent-process-kit --skill finish-task -a codex -a claude-code
+```
+
+Флаг `-g` ставит скилл на уровне пользователя. Без `-g` он остаётся в проекте, где команда может видеть и версионировать его.
+
+```sh
+npx skills update finish-task
+npx skills remove finish-task
+```
+
+В ограниченной или offline-среде можно напрямую скопировать [`skills/finish-task`](skills/finish-task) в каталог скиллов хоста.
+
+## Что изменилось после v0.2
+
+В версии 0.2 были starter contract, journal template, пять абстрактных skills и optional lifecycle runtime. Части были аккуратными, но продукт не имел убедительного входа. В версии 0.3 интерфейсом стала частая задача: закончить одно реальное изменение с доказательствами.
+
+Старый runtime и отдельные skills сохранены в неизменяемом [релизе v0.2.0](https://github.com/malakhov-dmitrii/agent-process-kit/releases/tag/v0.2.0). Детали: [переход с v0.2](docs/migration-v0.2.md).
+
+## Ограничения
+
+Instruction skill не выдаёт разрешения, не делает модель надёжной сам по себе и не доказывает правдивость текста в Evidence. Доступ и безопасность остаются у project rules и host controls. `finish-task` делает видимыми работу и недостающий proof; доказательства дают реальные тесты, runtime, browser и release system проекта.
+
+Исследование для редизайна: [competitive skill systems](docs/research/competitive-skill-systems-2026-10-08.md). Лицензии и происхождение: [THIRD_PARTY.md](THIRD_PARTY.md) и [docs/provenance.md](docs/provenance.md).

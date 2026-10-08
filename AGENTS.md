@@ -1,23 +1,27 @@
 # Repository agent contract
 
-Read [README.md](README.md) and [docs/how-it-works.md](docs/how-it-works.md) before changing the default playbook. The default interface is copyable documentation; keep Node/npm/runtime concepts under `optional-automation/`.
+Read [README.md](README.md) and [docs/how-it-works.md](docs/how-it-works.md) before changing the public workflow. The product has one promoted interface: `skills/finish-task/`.
 
-For changes to `starter/` or `skills/`, use the [writing-for-agents](skills/writing-for-agents/SKILL.md) guidance. Keep each rule in one authoritative place, use precise pointers, and remove stale or duplicated instructions.
+For skill changes:
 
-For changes under `optional-automation/`, read its README and architecture docs. Keep behavior in its owning module and the CLI thin. Reproduce bugs, test failure/recovery paths, and run:
+- keep the `SKILL.md` sequence short and put branch-specific detail behind precise relative pointers;
+- write descriptions as invocation triggers, not workflow summaries;
+- end every step on a checkable completion criterion;
+- keep each rule in one authoritative place;
+- test the public behavior, not only Markdown syntax;
+- preserve third-party licenses and attribution when adapting earlier material.
+
+The default product is portable Markdown installed through the standard `skills` ecosystem. Do not add a daemon, hook, account, telemetry, background process, host-specific runtime or global configuration to the default path.
+
+Before contributing, run:
 
 ```sh
-npm --prefix optional-automation run verify
-npm --prefix optional-automation run pack:check
+node scripts/check.mjs
+node --test tests/*.test.mjs
+node scripts/install-smoke.mjs
+git diff --check
 ```
 
-For every contribution:
+The install smoke needs network access to the pinned `skills@1.7.1` package. Behavior changes also need a clean-agent scenario that proves the intended trigger and Finish Card/receipt shape.
 
-- preserve unrelated edits and user-owned files;
-- keep project content free of private state, credentials, machine profiles, and private history;
-- preserve verified third-party licenses and attribution;
-- update the nearest documentation when public behavior or structure changes;
-- run `git diff --check` and the relevant CI-equivalent checks;
-- do not publish, register hooks, change permissions, or mutate production without the corresponding user request.
-
-The root README, starter contract, and five skills are the public product. Optional automation must not make the default quickstart more complicated.
+Preserve unrelated edits and user-owned project files. Do not commit journals, credentials, machine profiles, private history or generated install directories. A release comes from protected `main` after CI and readback; a local check or push is not a release.
