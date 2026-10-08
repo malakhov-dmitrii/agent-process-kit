@@ -1,0 +1,3 @@
+interface:
+  display_name: "Capability Core + Adapters"
+  short_description: "Place product rules behind thin adapters"

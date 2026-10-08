@@ -1,6 +1,6 @@
 # Contributing
 
-Agent Process Kit is one promoted skill, `finish-task`. A contribution should make that first path clearer, more reliable or better evidenced before it adds another public concept.
+Agent Process Kit is a seven-skill pack with one front door, `finish-task`. A contribution should keep the pack coherent, the front door obvious and every standalone skill independently installable.
 
 ## Content rules
 
@@ -9,6 +9,7 @@ Agent Process Kit is one promoted skill, `finish-task`. A contribution should ma
 - Give each step a checkable completion criterion.
 - Keep install commands identical in English and Russian docs.
 - Preserve upstream licenses and source links for adapted material.
+- Ship `LICENSE` and `NOTICE.md` inside every skill folder.
 - Do not add host-specific behavior to the portable workflow.
 
 ## Verification

@@ -5,9 +5,11 @@ description: Use when the user asks to fix, build, implement, migrate, refactor,
 
 # Finish Task
 
-Give the work a visible finish line, then continue until the requested boundary is proven or a real blocker remains. Input is the task plus an optional delivery boundary, which defaults to `local`. A later boundary requires the user's authorization.
+Give the work a visible finish line, then continue until the requested boundary is proven or blocked. Input is the task plus an optional delivery boundary, defaulting to `local`. A later boundary requires user authorization.
 
-Do not use this workflow for explanation-only, research-only, status-only, or review-only requests unless the user explicitly invokes `finish-task`.
+Use the normal request path for explanation, research, status or review-only work.
+
+With the full pack installed, use [pack routing](references/pack-routing.md) instead of repeating specialist rules.
 
 ## Workflow
 

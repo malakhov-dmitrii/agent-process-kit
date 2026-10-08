@@ -5,19 +5,27 @@
 [![CI](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml)
 [Русский](README.ru.md) · [How it works](docs/how-it-works.md) · [Compatibility](docs/compatibility.md)
 
-`finish-task` takes one concrete repository change from the first inspection to a reviewable result. It defines what done means, keeps scope from drifting, makes bugs or acceptance go red, verifies the real user path, and reports exactly what is local, committed, pushed, deployed, or proven in production.
+Agent Process Kit is a pack of seven plain `SKILL.md` workflows. Start with `finish-task`: it takes one concrete repository change from the first inspection to a reviewable result, then pulls in the pack's scope, architecture, authoring and delivery disciplines when they fit.
 
-The installed product is one plain `SKILL.md` folder. It has no daemon, hook, account, background process, telemetry, or runtime dependency.
+Every skill also works on its own. The pack has no daemon, hook, account, background process, telemetry, or runtime dependency.
 
-## Try it on real work
+## Install the pack
 
-Install the skill into a project:
+Install all seven skills for Codex and Claude Code:
+
+```sh
+npx skills add malakhov-dmitrii/agent-process-kit --skill '*' -a codex -a claude-code
+```
+
+If you only want the end-to-end front door:
 
 ```sh
 npx skills add malakhov-dmitrii/agent-process-kit --skill finish-task
 ```
 
-Then give your agent a real task:
+## Try it on real work
+
+Give your agent a real task:
 
 > Use `finish-task` on this: fix duplicate rows in CSV export. Keep the scope to the export path, prove the bug before changing code, run the real export flow, and stop at local verification.
 
@@ -67,26 +75,34 @@ For multi-step or long-session work, the skill persists the Finish Card in the p
 
 Read [the workflow and evidence model](docs/how-it-works.md) for the exact sequence.
 
+## What's in the pack
+
+| Layer | Skill | Job |
+|---|---|---|
+| Start here | [`finish-task`](skills/finish-task/SKILL.md) | Carry one code change from scope to proof |
+| Guardrail | [`depth-lock`](skills/depth-lock/SKILL.md) | Lock scope, review rounds and checkpoints |
+| Guardrail | [`verify-delivery`](skills/verify-delivery/SKILL.md) | Match “done”, push, deploy and production claims to current evidence |
+| Architecture | [`codebase-design`](skills/codebase-design/SKILL.md) | Design deep modules, interfaces and seams |
+| Architecture | [`capability-core-adapters`](skills/capability-core-adapters/SKILL.md) | Keep product behavior behind thin entrypoint adapters |
+| Architecture | [`capability-contract`](skills/capability-contract/SKILL.md) | Define truth, authority, lifecycle, commands and degraded states |
+| Meta | [`writing-for-agents`](skills/writing-for-agents/SKILL.md) | Write skills and agent instructions that fire reliably |
+
+`finish-task` is the memorable path through the pack. The other six remain independently discoverable and installable; you do not need to run the full train for a narrow architecture or authoring task.
+
 ## Install, update, remove
 
-The command above uses the open [`skills`](https://github.com/vercel-labs/skills) installer and lets you choose the detected agent. To target Codex and Claude Code explicitly:
+The commands above use the open [`skills`](https://github.com/vercel-labs/skills) installer. Without `-g`, the installer keeps the skills with the current project so a team can review and version them. Add `-g` for a user-level install shared by projects.
 
 ```sh
-npx skills add malakhov-dmitrii/agent-process-kit --skill finish-task -a codex -a claude-code
+npx skills update
+npx skills remove capability-contract capability-core-adapters codebase-design depth-lock finish-task verify-delivery writing-for-agents -a codex -a claude-code -y
 ```
 
-Use `-g` for a user-level install shared by projects. Without `-g`, the installer keeps the skill with the current project so a team can review and version it.
-
-```sh
-npx skills update finish-task
-npx skills remove finish-task -a codex -a claude-code -y
-```
-
-Restricted or offline environments can copy [`skills/finish-task`](skills/finish-task) directly into the host's skill directory. The source remains ordinary Markdown.
+To install or remove one skill, replace the list with its name. Restricted or offline environments can copy any folder under [`skills/`](skills) directly into the host's skill directory.
 
 ## What this replaces
 
-Version 0.2 presented a starter contract, a journal template, five abstract skills, and an optional lifecycle runtime. They were correct parts with no convincing front door. Version 0.3 makes the common job the interface: finish one real coding task with proof.
+Version 0.2 presented five independent skills but no convincing front door. Version 0.3.0 overcorrected and reduced the product to `finish-task`. The current pack keeps that strong entrypoint and restores the independent craft skills around it, with `verify-delivery` added as a reusable proof guardrail.
 
 The old runtime and standalone skills remain available in the immutable [v0.2.0 release](https://github.com/malakhov-dmitrii/agent-process-kit/releases/tag/v0.2.0). See [migration from v0.2](docs/migration-v0.2.md).
 

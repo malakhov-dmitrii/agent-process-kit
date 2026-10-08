@@ -1,6 +1,6 @@
 # Repository agent contract
 
-Read [README.md](README.md) and [docs/how-it-works.md](docs/how-it-works.md) before changing the public workflow. The product has one promoted interface: `skills/finish-task/`.
+Read [README.md](README.md) and [docs/how-it-works.md](docs/how-it-works.md) before changing the public workflow. The pack has one front door, `finish-task`, plus six independently installable craft and guardrail skills.
 
 For skill changes:
 
@@ -11,7 +11,7 @@ For skill changes:
 - test the public behavior, not only Markdown syntax;
 - preserve third-party licenses and attribution when adapting earlier material.
 
-The default product is portable Markdown installed through the standard `skills` ecosystem. Do not add a daemon, hook, account, telemetry, background process, host-specific runtime or global configuration to the default path.
+The product is portable Markdown installed through the standard `skills` ecosystem. Keep every skill independently useful and self-contained with its own license and notice. Do not add a daemon, hook, account, telemetry, background process, host-specific runtime or global configuration to the default path.
 
 Before contributing, run:
 

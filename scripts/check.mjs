@@ -26,14 +26,37 @@ const javascript = all.filter((path) => ['.js', '.mjs', '.cjs'].includes(extname
 for (const path of javascript) execFileSync(process.execPath, ['--check', path], { stdio: 'pipe' });
 
 const skillRoot = join(root, 'skills');
+const expectedSkills = [
+  'capability-contract',
+  'capability-core-adapters',
+  'codebase-design',
+  'depth-lock',
+  'finish-task',
+  'verify-delivery',
+  'writing-for-agents',
+];
 const skills = readdirSync(skillRoot, { withFileTypes: true })
   .filter((entry) => entry.isDirectory() && existsSync(join(skillRoot, entry.name, 'SKILL.md')))
-  .map((entry) => entry.name);
-assert.deepEqual(skills, ['finish-task']);
+  .map((entry) => entry.name)
+  .sort();
+assert.deepEqual(skills, expectedSkills);
 
-const skill = readFileSync(join(skillRoot, 'finish-task', 'SKILL.md'), 'utf8');
-assert.match(skill, /^---\nname: finish-task\ndescription: Use when [^\n]+\n---\n/);
-assert.ok(skill.length < 8000, 'SKILL.md must keep specialist detail behind references');
+for (const name of skills) {
+  const skill = readFileSync(join(skillRoot, name, 'SKILL.md'), 'utf8');
+  assert.match(skill, new RegExp(`^---\\nname: ${name}\\ndescription: Use when [^\\n]+\\n`));
+  assert.ok(existsSync(join(skillRoot, name, 'LICENSE')), `${name} has no distributed LICENSE`);
+  assert.ok(existsSync(join(skillRoot, name, 'NOTICE.md')), `${name} has no distributed NOTICE`);
+}
+
+const finishSkill = readFileSync(join(skillRoot, 'finish-task', 'SKILL.md'), 'utf8');
+assert.ok(finishSkill.length < 8000, 'finish-task must keep specialist detail behind references');
+for (const reference of ['delivery-stages.md', 'evidence-receipt.md']) {
+  assert.equal(
+    readFileSync(join(skillRoot, 'finish-task', 'references', reference), 'utf8'),
+    readFileSync(join(skillRoot, 'verify-delivery', 'references', reference), 'utf8'),
+    `${reference} portable copies differ`,
+  );
+}
 
 let links = 0;
 for (const path of markdown) {
@@ -72,5 +95,4 @@ for (const line of readFileSync(checksumFile, 'utf8').trim().split('\n')) {
   assert.equal(actual, match[1], `checksum mismatch: ${match[2]}`);
 }
 
-console.log(`Checked ${javascript.length} JS files, 1 promoted skill, ${links} local Markdown links and license checksums.`);
-
+console.log(`Checked ${javascript.length} JS files, ${skills.length} skills, ${links} local Markdown links and license checksums.`);

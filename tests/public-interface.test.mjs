@@ -7,15 +7,17 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const read = (path) => readFileSync(join(root, path), 'utf8');
 const install = 'npx skills add malakhov-dmitrii/agent-process-kit --skill finish-task';
-const remove = 'npx skills remove finish-task -a codex -a claude-code -y';
+const pack = ['capability-contract', 'capability-core-adapters', 'codebase-design', 'depth-lock', 'finish-task', 'verify-delivery', 'writing-for-agents'];
+const packInstall = "npx skills add malakhov-dmitrii/agent-process-kit --skill '*' -a codex -a claude-code";
+const packRemove = `npx skills remove ${pack.join(' ')} -a codex -a claude-code -y`;
 
-test('the public catalog has one promoted skill', () => {
+test('the public catalog has one front door and a coherent skill pack', () => {
   const skillNames = readdirSync(join(root, 'skills'), { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && existsSync(join(root, 'skills', entry.name, 'SKILL.md')))
     .map((entry) => entry.name)
     .sort();
 
-  assert.deepEqual(skillNames, ['finish-task']);
+  assert.deepEqual(skillNames, pack);
 
   const skill = read('skills/finish-task/SKILL.md');
   assert.match(skill, /^---\nname: finish-task\ndescription: Use when /);
@@ -35,14 +37,10 @@ test('the public catalog has one promoted skill', () => {
     assert.match(skill, new RegExp(`references/${reference.replace('.', '\\.')}`));
   }
 
-  for (const distributedNotice of [
-    'LICENSE',
-    'NOTICE.md',
-    'licenses/matt-pocock-skills.txt',
-    'licenses/capability-core-adapters.txt',
-    'licenses/depth-lock.txt',
-  ]) {
-    assert.ok(existsSync(join(root, 'skills', 'finish-task', distributedNotice)), distributedNotice);
+  for (const skillName of pack) {
+    for (const distributedNotice of ['LICENSE', 'NOTICE.md']) {
+      assert.ok(existsSync(join(root, 'skills', skillName, distributedNotice)), `${skillName}/${distributedNotice}`);
+    }
   }
 });
 
@@ -56,7 +54,8 @@ test('the landing page reaches first value before internals', () => {
 
   for (const body of [english, russian]) {
     assert.ok(body.includes(install));
-    assert.ok(body.includes(remove));
+    assert.ok(body.includes(packInstall));
+    assert.ok(body.includes(packRemove));
     assert.ok(body.indexOf(install) < body.indexOf('## How it works') || body.indexOf(install) < body.indexOf('## Как это работает'));
   }
 

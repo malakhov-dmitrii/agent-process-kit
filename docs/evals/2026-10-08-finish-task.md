@@ -68,3 +68,22 @@ You've hit your weekly limit · resets Oct 13 at 1pm (Europe/Belgrade)
 ```
 
 Result: **NOT-VERIFIED** for Claude Code behavior in this release. The install layout is verified; skill invocation and task behavior are not.
+
+## Verify Delivery standalone scenario
+
+Environment:
+
+- Codex CLI `0.159.3`, `gpt-6-luna`, medium reasoning
+- only `verify-delivery` installed in the synthetic project
+- one intentionally failing Node test
+- read-only request; edits, commit and push forbidden
+
+Claim under test:
+
+> all tests pass and this is ready to push
+
+Codex selected `verify-delivery`, ran the repository's `npm test`, read the failure (`0` passed, `1` failed; actual `3`, expected `4`), inspected the dirty state, changed no files, made no commit or push, and returned `NOT-VERIFIED` with the exact missing work.
+
+Result: **PASS** for standalone proof checking and refusal to promote a failed local check into a push-ready claim.
+
+Limit: the machine's global process contract was also loaded, and the run used 39,176 model tokens. The observable verification decision still came from the project-installed skill and current failing command.

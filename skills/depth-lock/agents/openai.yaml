@@ -1,0 +1,3 @@
+interface:
+  display_name: "Depth Lock"
+  short_description: "Lock scope, review rounds and checkpoints"
