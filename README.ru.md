@@ -1,111 +1,90 @@
 # Agent Process Kit
 
-## Дайте кодинг-агенту финишную черту.
+## Дайте кодинг-агенту проверяемую финишную черту.
 
 [![CI](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml)
 [English](README.md) · [Как это работает](docs/how-it-works.md) · [Совместимость](docs/compatibility.md)
 
-Agent Process Kit - это pack из семи обычных `SKILL.md`. Начинать проще всего с `finish-task`: он проводит одно изменение от scope к proof и подключает правила пака про границы, архитектуру, agent docs и доставку только когда они нужны.
+Agent Process Kit — это dependency-free Node.js control plane и семь переносимых skills. `orchestrate-task` — входная точка: дайте агенту обычную задачу, а он сам выберет внутренние методы, сохранит состояние и покажет точную границу доказательств.
 
-Каждый skill можно использовать отдельно. У пака нет демона, хуков, аккаунта, фонового процесса, телеметрии и runtime-зависимости.
+## Установка и настройка
 
-## Установите pack
-
-Все семь skills для Codex и Claude Code:
+Запустите стандартную настройку из корня проекта:
 
 ```sh
-npx skills add malakhov-dmitrii/agent-process-kit --skill '*' -a codex -a claude-code
+npx skills add malakhov-dmitrii/agent-process-kit --skill '*' -a codex -a claude-code && npx @malakhov-dmitrii/agent-process-kit setup --apply
 ```
 
-Если нужен только end-to-end вход:
+Команда ставит семь skills в `.agents/skills/` и `.claude/skills/`, затем записывает hash-owned runtime adapter и receipt настройки в проект. Проверить или отменить настройку можно так:
 
 ```sh
-npx skills add malakhov-dmitrii/agent-process-kit --skill finish-task
+npx @malakhov-dmitrii/agent-process-kit verify-setup
+npx @malakhov-dmitrii/agent-process-kit rollback --apply
 ```
+
+Для обновления project install используйте `skills update`. Runtime — это `bin/`, `runtime/` и `package.json`; отдельного daemon, аккаунта, telemetry service или фонового процесса нет.
 
 ## Попробуйте на реальной задаче
 
-Дайте агенту настоящую задачу:
+Дайте агенту обычный запрос. Называть skill не нужно:
 
-> Use `finish-task` on this: исправь дубли строк в CSV export. Не выходи за export path, сначала докажи баг, затем пройди реальный export flow и остановись на локальной проверке.
+> Исправь дубли строк в CSV export. Оставь scope в export path, сначала докажи баг, пройди реальный export flow и остановись на локальной проверке.
 
-Первый полезный результат — **Finish Card**:
+Для ясной механической задачи агент фиксирует mode и продолжает. Вопрос появляется только при материальном выборе по продукту, scope, архитектуре, данным, разрешениям или границе доставки. У каждой задачи есть durable record с целью, фазой, прогрессом, решениями, evidence, delivery state и следующим owner/action. Для большой задачи отдельно сохраняются immutable artifacts specification, plan, review и proof.
 
-```text
-FINISH CARD
-
-Цель              В CSV export каждая логическая строка встречается один раз.
-Scope             Только pagination и deduplication экспорта.
-Acceptance        Красная репродукция, regression, реальный export, gates проекта.
-Граница доставки  Локальная проверка. Без заявлений про push или deploy.
-```
-
-В конце агент закрывает ту же карточку свежими доказательствами и одним честным receipt:
+Последовательность выглядит так:
 
 ```text
-LOCAL-ONLY: Дубли в экспорте исправлены.
-
-Проверено: failing reproduction, regression, затронутые checks, реальный export flow.
-Не заявлено: commit, push, deploy, production behavior.
+обычный запрос
+  → clarification только при материальной неоднозначности
+  → reviewed specification и executable plan
+  → ATDD red proof и TDD implementation
+  → bounded code review
+  → реальный local UAT
+  → разрешённый release
+  → production UAT и observation
 ```
 
-Это и есть продукт. Перед полезной работой не нужно настраивать отдельный framework.
+Границы proof разделены: локальные checks и UAT, commit, push, deploy, authenticated production behavior. Commit не доказывает push, push не доказывает deploy, deploy не доказывает поведение production.
 
-## Как это работает
+Для связанной задачи используйте обычные команды:
 
 ```text
-запрос
-  → Finish Card
-  → failing reproduction или наблюдаемый acceptance
-  → полное изменение в согласованном scope
-  → review diff против карточки и project rules
-  → gates проекта + реальный пользовательский путь
-  → evidence receipt на разрешённой границе доставки
+дай статус   # durable status projection
+продолжай    # следующая разрешённая фаза
+кати         # зафиксированная граница release
+pause        # пауза и отзыв активных grants
+stop         # отмена после containment
 ```
 
-- **Баг:** reproduce → причина → failing regression → fix → повтор реального пути.
-- **Фича:** наблюдаемый acceptance → scope → implementation → acceptance и project gates.
-- **Архитектура:** ownership, authority, lifecycle и module seams до широких правок.
-- **Доставка:** local, commit, push, deploy и production verification остаются разными фактами.
-
-Для длинной задачи скилл сохраняет Finish Card в принятом проектом месте или `.agent/tasks/<slug>.md`. Одношаговая правка может оставить карточку в чате.
-
-Точная последовательность: [workflow и evidence model](docs/how-it-works.md).
+Status показывает task, goal, phase, completed/total lanes, current/stale/missing evidence, delivery state, pending decisions, last trace и next action. Он не восстанавливает состояние из истории чата.
 
 ## Что входит в pack
 
 | Слой | Skill | Задача |
 |---|---|---|
-| Начать здесь | [`finish-task`](skills/finish-task/SKILL.md) | Провести одно изменение от scope к proof |
+| Начать здесь | [`orchestrate-task`](skills/orchestrate-task/SKILL.md) | Провести обычную задачу через durable control plane |
 | Guardrail | [`depth-lock`](skills/depth-lock/SKILL.md) | Зафиксировать scope, review rounds и checkpoints |
-| Guardrail | [`verify-delivery`](skills/verify-delivery/SKILL.md) | Привязать done, push, deploy и production claims к свежему evidence |
+| Guardrail | [`verify-delivery`](skills/verify-delivery/SKILL.md) | Привязать delivery claims к свежему evidence |
 | Архитектура | [`codebase-design`](skills/codebase-design/SKILL.md) | Проектировать deep modules, interfaces и seams |
-| Архитектура | [`capability-core-adapters`](skills/capability-core-adapters/SKILL.md) | Держать product behavior за тонкими entrypoint adapters |
-| Архитектура | [`capability-contract`](skills/capability-contract/SKILL.md) | Определить truth, authority, lifecycle, commands и degraded states |
-| Meta | [`writing-for-agents`](skills/writing-for-agents/SKILL.md) | Писать skills и agent instructions, которые надёжно вызываются |
+| Архитектура | [`capability-core-adapters`](skills/capability-core-adapters/SKILL.md) | Держать product behavior за тонкими adapters |
+| Архитектура | [`capability-contract`](skills/capability-contract/SKILL.md) | Определить truth, authority, lifecycle и degraded states |
+| Meta | [`writing-for-agents`](skills/writing-for-agents/SKILL.md) | Писать надёжные skills и agent instructions |
 
-`finish-task` - запоминаемый путь через pack. Остальные шесть skills остаются самостоятельными: для узкой архитектурной или authoring-задачи весь train не нужен.
+Front door выбирает внутренние методы, когда нужен соответствующий branch. Для узкой задачи любой skill можно установить отдельно.
 
-## Установка, обновление, удаление
-
-Команды выше используют открытый установщик [`skills`](https://github.com/vercel-labs/skills). Без `-g` skills остаются в текущем проекте, где команда может видеть и версионировать их. Флаг `-g` ставит pack на уровне пользователя.
+## Обновление и удаление
 
 ```sh
-npx skills update
-npx skills update finish-task --project -y
-npx skills remove capability-contract capability-core-adapters codebase-design depth-lock finish-task verify-delivery writing-for-agents -a codex -a claude-code -y
+npx skills update --project -y
+npx skills update orchestrate-task --project -y
+npx skills remove capability-contract capability-core-adapters codebase-design depth-lock orchestrate-task verify-delivery writing-for-agents -a codex -a claude-code -y
 ```
 
-Для одного skill замените список его именем. В ограниченной или offline-среде можно напрямую скопировать любую папку из [`skills/`](skills) в каталог skills нужного хоста.
+В offline-среде можно скопировать каталог skill из [`skills/`](skills) вместе со всеми supporting files. В каждом skill есть собственные `LICENSE` и `NOTICE.md`.
 
-## Что изменилось после v0.2
+## Ограничения и история
 
-В версии 0.2 было пять самостоятельных skills, но не было убедительного входа. Версия 0.3.0 перегнула в другую сторону и оставила только `finish-task`. Текущий pack сохраняет сильный front door, возвращает отдельные craft skills и добавляет `verify-delivery` как самостоятельный proof guardrail.
+Instruction skills не выдают permissions, не делают модель надёжной сами по себе и не доказывают правдивость evidence. Источниками истины остаются project rules, host controls и реальные test, browser, provider и production systems.
 
-Старый runtime и отдельные skills сохранены в неизменяемом [релизе v0.2.0](https://github.com/malakhov-dmitrii/agent-process-kit/releases/tag/v0.2.0). Детали: [переход с v0.2](docs/migration-v0.2.md).
-
-## Ограничения
-
-Instruction skill не выдаёт разрешения, не делает модель надёжной сам по себе и не доказывает правдивость текста в Evidence. Доступ и безопасность остаются у project rules и host controls. `finish-task` делает видимыми работу и недостающий proof; доказательства дают реальные тесты, runtime, browser и release system проекта.
-
-Исследование для редизайна: [competitive skill systems](docs/research/competitive-skill-systems-2026-10-08.md). Лицензии и происхождение: [THIRD_PARTY.md](THIRD_PARTY.md) и [docs/provenance.md](docs/provenance.md).
+В релизе v0.3.1 входной точкой был `finish-task`. В v0.4 этот публичный вход заменён на `orchestrate-task`, а в пакет добавлены runtime и setup. Неизменяемый [релиз v0.2.0](https://github.com/malakhov-dmitrii/agent-process-kit/releases/tag/v0.2.0) остаётся источником для migration. См. [совместимость](docs/compatibility.md), [security](SECURITY.md), [third-party notices](THIRD_PARTY.md) и [provenance](docs/provenance.md).

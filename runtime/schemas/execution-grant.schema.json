@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-process-kit.dev/schemas/execution-grant.schema.json",
+  "title": "Agent Process Kit execution grant",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["grantId", "taskId", "intentId", "operatorIdentity", "granteeRole", "allowedAction", "targetResource", "deliveryBoundary", "specGeneration", "planGeneration", "candidateIdentity", "constraints", "issuedAt", "expiresAt", "maxUses", "uses", "revokedAt"],
+  "properties": {
+    "grantId": { "type": "string", "minLength": 1 },
+    "taskId": { "type": "string", "minLength": 1 },
+    "intentId": { "type": "string", "minLength": 1 },
+    "operatorIdentity": { "type": "string", "minLength": 1 },
+    "granteeRole": { "type": "string", "minLength": 1 },
+    "allowedAction": { "type": "string", "minLength": 1 },
+    "targetResource": { "type": "string", "minLength": 1 },
+    "deliveryBoundary": { "enum": ["commit", "push", "deploy", "production"] },
+    "specGeneration": { "type": "integer", "minimum": 0 },
+    "planGeneration": { "type": "integer", "minimum": 0 },
+    "candidateIdentity": { "type": "object" },
+    "constraints": { "type": "object" },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "maxUses": { "type": "integer", "minimum": 1 },
+    "uses": { "type": "integer", "minimum": 0 },
+    "revokedAt": { "type": ["string", "null"], "format": "date-time" },
+    "revokeReason": { "type": "string" }
+  }
+}

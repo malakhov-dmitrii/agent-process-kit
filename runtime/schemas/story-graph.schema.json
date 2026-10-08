@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-process-kit.dev/schemas/story-graph.schema.json",
+  "title": "Agent Process Kit story graph",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["taskId", "planGeneration", "reviewCaps", "stories"],
+  "properties": {
+    "taskId": { "type": "string", "minLength": 1 },
+    "planGeneration": { "type": "integer", "minimum": 0 },
+    "reviewCaps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["spec", "plan", "code"],
+      "properties": {
+        "spec": { "type": "integer", "minimum": 0 },
+        "plan": { "type": "integer", "minimum": 0 },
+        "code": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "frozenAt": { "type": "string", "format": "date-time" },
+    "stories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "dependsOn", "ownedPaths", "kind", "required", "status", "claim", "claimHistory", "result", "integrationReceipt"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "title": { "type": "string", "minLength": 1 },
+          "dependsOn": { "type": "array", "items": { "type": "string" } },
+          "ownedPaths": { "type": "array", "items": { "type": "string" } },
+          "kind": { "enum": ["work", "integration"] },
+          "required": { "type": "boolean" },
+          "status": { "enum": ["pending", "ready", "claimed", "submitted", "integrated", "blocked"] },
+          "claim": { "type": ["object", "null"] },
+          "claimHistory": { "type": "array" },
+          "result": { "type": ["object", "null"] },
+          "integrationReceipt": { "type": ["object", "null"] },
+          "integratedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}
