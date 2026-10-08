@@ -177,11 +177,13 @@ test("receiptRule: 5 DELIVERED shas → checkReceipt called ≤3 times (only fir
   assert.ok(Date.now() - t0 < 3000);
 });
 
+// Use full commit IDs below. A seven-character prefix can be decimal-only and is
+// intentionally ignored by receiptRule because it is indistinguishable from a ticket ID.
 test("receiptRule: deploy claim + live build-info → allow", async () => {
   const { work, bare } = makeBarePair();
   const sha = pushSecondCommit(work);
   const { srv, port } = await serveCommit(sha);
-  const result = await receiptRule(`DELIVERED: ${sha.slice(0, 7)} deployed to prod`, work, Date.now() + 3000, targetsFor(bare, port));
+  const result = await receiptRule(`DELIVERED: ${sha} deployed to prod`, work, Date.now() + 3000, targetsFor(bare, port));
   await new Promise((r) => srv.close(r));
   assert.equal(result.block, false);
 });
@@ -191,7 +193,7 @@ test("receiptRule: deploy claim + build-info behind → block", async () => {
   const first = git(work, "rev-parse", "HEAD");
   const sha = pushSecondCommit(work);
   const { srv, port } = await serveCommit(first);
-  const result = await receiptRule(`DELIVERED: ${sha.slice(0, 7)} задеплоено`, work, Date.now() + 3000, targetsFor(bare, port));
+  const result = await receiptRule(`DELIVERED: ${sha} задеплоено`, work, Date.now() + 3000, targetsFor(bare, port));
   await new Promise((r) => srv.close(r));
   assert.equal(result.block, true);
   assert.match(result.reason, /заявлен деплой.*crm=behind@/);
@@ -201,7 +203,7 @@ test("receiptRule: deploy claim + build-info 500 → allow (unknown)", async () 
   const { work, bare } = makeBarePair();
   const sha = pushSecondCommit(work);
   const { srv, port } = await serveCommit(500);
-  const result = await receiptRule(`DELIVERED: ${sha.slice(0, 7)} deployed`, work, Date.now() + 3000, targetsFor(bare, port));
+  const result = await receiptRule(`DELIVERED: ${sha} deployed`, work, Date.now() + 3000, targetsFor(bare, port));
   await new Promise((r) => srv.close(r));
   assert.equal(result.block, false);
 });
@@ -211,7 +213,7 @@ test("receiptRule: pushed without a deploy claim never fetches build-info", asyn
   const first = git(work, "rev-parse", "HEAD");
   const sha = pushSecondCommit(work);
   const { srv, hits, port } = await serveCommit(first);
-  const result = await receiptRule(`DELIVERED: ${sha.slice(0, 7)} pushed to main`, work, Date.now() + 3000, targetsFor(bare, port));
+  const result = await receiptRule(`DELIVERED: ${sha} pushed to main`, work, Date.now() + 3000, targetsFor(bare, port));
   await new Promise((r) => srv.close(r));
   assert.equal(result.block, false);
   assert.equal(hits.n, 0);
@@ -262,7 +264,7 @@ test("time bound: never-answering HTTP deploy → receiptRule returns < 4s", asy
   const sha = pushSecondCommit(work);
   const { srv, hits, port } = await serveCommit(null);
   const t0 = Date.now();
-  const result = await receiptRule(`DELIVERED: ${sha.slice(0, 7)} deployed`, work, Date.now() + 3500, targetsFor(bare, port));
+  const result = await receiptRule(`DELIVERED: ${sha} deployed`, work, Date.now() + 3500, targetsFor(bare, port));
   const elapsed = Date.now() - t0;
   srv.closeAllConnections(); await new Promise((r) => srv.close(r));
   assert.ok(hits.n >= 1, "the hanging server was actually called");
