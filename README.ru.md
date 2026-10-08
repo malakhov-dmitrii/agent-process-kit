@@ -50,6 +50,7 @@ LOCAL-ONLY: Дубли в экспорте исправлены.
   → Finish Card
   → failing reproduction или наблюдаемый acceptance
   → полное изменение в согласованном scope
+  → review diff против карточки и project rules
   → gates проекта + реальный пользовательский путь
   → evidence receipt на разрешённой границе доставки
 ```
@@ -75,7 +76,7 @@ npx skills add malakhov-dmitrii/agent-process-kit --skill finish-task -a codex -
 
 ```sh
 npx skills update finish-task
-npx skills remove finish-task
+npx skills remove finish-task -a codex -a claude-code -y
 ```
 
 В ограниченной или offline-среде можно напрямую скопировать [`skills/finish-task`](skills/finish-task) в каталог скиллов хоста.

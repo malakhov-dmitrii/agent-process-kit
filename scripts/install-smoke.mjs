@@ -58,6 +58,9 @@ assert.match(JSON.stringify(lock), /finish-task/);
 skills('update', 'finish-task', '--project', '-y');
 skills('remove', 'finish-task', '-a', 'codex', '-a', 'claude-code', '-y');
 
+const removedLock = JSON.parse(readFileSync(join(project, 'skills-lock.json'), 'utf8'));
+assert.deepEqual(removedLock.skills, {}, 'remove must clear the project lock entry');
+
 for (const target of [
   join(project, '.agents', 'skills', 'finish-task'),
   join(project, '.claude', 'skills', 'finish-task'),

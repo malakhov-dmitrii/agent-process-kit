@@ -25,7 +25,7 @@ The old release remains immutable. Its source archive and optional automation ta
 3. Remove old installed skill copies only after checking that no project instruction points to them:
 
    ```sh
-   npx skills remove capability-contract capability-core-adapters codebase-design depth-lock writing-for-agents
+   npx skills remove capability-contract capability-core-adapters codebase-design depth-lock writing-for-agents -a codex -a claude-code -y
    ```
 
 4. Start new work with `Use finish-task on this: ...`.

@@ -51,6 +51,7 @@ request
   → Finish Card
   → failing reproduction or observable acceptance
   → complete scoped change
+  → diff review against the card and project rules
   → project gates + real user path
   → evidence receipt at the authorized delivery boundary
 ```
@@ -78,7 +79,7 @@ Use `-g` for a user-level install shared by projects. Without `-g`, the installe
 
 ```sh
 npx skills update finish-task
-npx skills remove finish-task
+npx skills remove finish-task -a codex -a claude-code -y
 ```
 
 Restricted or offline environments can copy [`skills/finish-task`](skills/finish-task) directly into the host's skill directory. The source remains ordinary Markdown.

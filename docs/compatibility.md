@@ -22,6 +22,12 @@ npx skills add malakhov-dmitrii/agent-process-kit --skill finish-task
 
 Use `-g` for a user-level install. Use `-a codex -a claude-code` to select both hosts explicitly. The installer owns its links/copies and lock file; the skill itself owns no runtime state.
 
+Remove the tested project install from both hosts with:
+
+```sh
+npx skills remove finish-task -a codex -a claude-code -y
+```
+
 ## Fallback
 
 Copy `skills/finish-task/` as one directory into the host's skill folder. Preserve the `references/` and `agents/` subdirectories. Remove that copied directory to uninstall.
