@@ -5,7 +5,7 @@
 | Host or path | Level | What is verified |
 |---|---|---|
 | Vercel `skills` CLI 1.7.1 | tested | repository discovery plus clean install, update and removal |
-| OpenAI Codex CLI 0.159.3 | behavior-tested | clean install; explicit invocation produced a Finish Card, red regression, implementation, 4/4 passing tests and a `LOCAL-ONLY` receipt |
+| OpenAI Codex CLI 0.159.3 | behavior-tested | clean install; explicit and implicit invocations produced Finish Cards, red regressions, scoped fixes, passing tests and `LOCAL-ONLY` receipts |
 | Claude Code 2.1.291 | install-tested | clean install layout matched source byte for byte; live behavior run was blocked by the account's weekly limit on 2026-10-08 |
 | Direct `SKILL.md` reference | instruction-only | all required content is in portable Markdown and relative files |
 | Other Agent Skills hosts | instruction-only | format is portable; host invocation and behavior have not been run here |

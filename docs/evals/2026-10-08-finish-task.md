@@ -37,9 +37,19 @@ Observed sequence:
 
 Result: **PASS** for explicit invocation, red proof, scoped implementation, current local verification, persisted card and honest delivery receipt.
 
+### Implicit invocation
+
+A second clean fixture used Codex `gpt-6-luna` at medium reasoning. The prompt did not name the skill:
+
+> Fix dedupeRows so repeated ids keep only the first row in original order. Add a regression, finish the task at local verification, and do not commit or push. Do not ask questions.
+
+Codex selected the project-installed `finish-task` from its description, read the compact template, persisted a 35-line Finish Card, ran a regression red before the source edit, implemented the fix, reviewed the diff, passed `2/2` tests and the task checker, then returned a `LOCAL-ONLY` receipt with no commit or push.
+
+Result: **PASS** for implicit invocation and the reviewed compact-card workflow.
+
 Limits:
 
-- The machine's global agent contract and global skills were still present despite the CLI's `--ignore-user-config` flag. They added task-binding and prose-review steps, so this run does not measure a stock Codex prompt or the final compact Finish Card template in isolation.
+- The machine's global agent contract and global skills were still present despite the CLI's `--ignore-user-config` flag. They added task-binding steps, so neither run measures a stock Codex prompt in isolation.
 - The scenario tests a small pure function. It does not prove browser UAT, deployment behavior, implicit model invocation or another model version.
 - The run used 50,839 model tokens because of the host's global process stack. The public skill itself was 527 words at test time.
 
