@@ -1,6 +1,6 @@
 # How Finish Task works
 
-`finish-task` is one deep workflow behind one small interface: a concrete coding task and an optional delivery boundary.
+`finish-task` is the pack's front door: one deep workflow behind a concrete coding task and an optional delivery boundary. The other skills remain available for narrower work.
 
 ## The artifact chain
 
@@ -15,6 +15,15 @@ request
 ```
 
 The Finish Card stays stable while the implementation changes. It tells the agent and user what belongs in the task, what proves the result, and where delivery stops.
+
+## How the pack composes
+
+- `depth-lock` owns scope, review caps and checkpoints.
+- `verify-delivery` owns current evidence and delivery-stage claims.
+- `codebase-design`, `capability-core-adapters` and `capability-contract` own architecture branches.
+- `writing-for-agents` owns skills and agent instruction documents.
+
+`finish-task` carries a self-contained minimum of these rules so it can be installed alone. With the full pack installed, each specialist is also directly invokable. A narrow task should load the relevant specialist instead of paying for the whole end-to-end workflow.
 
 ## 1. Discover the real project
 

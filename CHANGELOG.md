@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 - 2026-10-08
+
+- Kept `finish-task` as the front door and restored the five standalone v0.2 craft skills.
+- Added `verify-delivery` as an independent proof and delivery-stage guardrail.
+- Added complete-pack and single-skill clean install/update/remove coverage.
+- Added license, notice and Codex display metadata to every distributed skill.
+- Reworked the landing page around the pack taxonomy while preserving the fast first task.
+
 ## 0.3.0 - 2026-10-08
 
 - Replaced the copy-a-contract front door with one promoted `finish-task` skill.

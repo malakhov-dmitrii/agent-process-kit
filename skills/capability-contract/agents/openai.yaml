@@ -1,0 +1,3 @@
+interface:
+  display_name: "Capability Contract"
+  short_description: "Define authority, lifecycle, truth and proof"
