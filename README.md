@@ -1,64 +1,96 @@
 # Agent Process Kit
 
+## Give your coding agent a finish line.
+
 [![CI](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml)
-[Русский](README.ru.md) · [How it works](docs/how-it-works.md) · [Choose skills](docs/choosing-skills.md)
+[Русский](README.ru.md) · [How it works](docs/how-it-works.md) · [Compatibility](docs/compatibility.md)
 
-A copyable working agreement for coding agents: inspect the real project, agree on scope, test behavior, verify the user flow, and report the delivery stage honestly.
+`finish-task` takes one concrete repository change from the first inspection to a reviewable result. It defines what done means, keeps scope from drifting, makes bugs or acceptance go red, verifies the real user path, and reports exactly what is local, committed, pushed, deployed, or proven in production.
 
-The default kit has no installer, package, daemon, hook, or model dependency.
+The installed product is one plain `SKILL.md` folder. It has no daemon, hook, account, background process, telemetry, or runtime dependency.
 
-## Start in two minutes
+## Try it on real work
 
-1. Copy [starter/AGENTS.md](starter/AGENTS.md) into a project with no agent instructions. If the project already has `AGENTS.md` or `CLAUDE.md`, merge the relevant rules instead of replacing it.
-2. Copy [starter/task-journal.md](starter/task-journal.md) to your project's task-documentation folder when a task needs a durable scope and progress record.
-3. Add only the [skills](docs/choosing-skills.md) that fit your work. You can copy a skill folder into your agent's skill directory or point the agent at its `SKILL.md` explicitly.
-4. Give the agent the task.
+Install the skill into a project:
 
-Example prompt:
-
-> Read AGENTS.md and the local instructions for the code you will touch. For this task, first inspect the implementation and propose observable acceptance criteria. Discuss product or architecture choices with me. After we agree, implement the full scope, verify the real user path, update affected docs, and report the exact delivery stage.
-
-That is the complete default setup.
-
-## What's included
-
-```text
-starter/
-  AGENTS.md
-  task-journal.md
-skills/
-  capability-contract/
-  capability-core-adapters/
-  codebase-design/
-  depth-lock/
-  writing-for-agents/
-docs/
-  how-it-works.md
-  choosing-skills.md
-optional-automation/
-  README.md
+```sh
+npx skills add malakhov-dmitrii/agent-process-kit --skill finish-task
 ```
 
-The five skill folders are real, independently usable instruction sources. They are licensed and attributed in [THIRD_PARTY.md](THIRD_PARTY.md). Broader workflow libraries such as [Superpowers](https://github.com/obra/superpowers) stay upstream instead of being copied into this repository.
+Then give your agent a real task:
 
-## What the contract changes
+> Use `finish-task` on this: fix duplicate rows in CSV export. Keep the scope to the export path, prove the bug before changing code, run the real export flow, and stop at local verification.
 
-- Bugs begin with a reproduction that fails for the actual defect.
-- Features begin with observable user acceptance.
-- Significant product, architecture, data, permission, and external-action choices remain human decisions.
-- Routine reversible work inside the agreed scope stays autonomous.
-- Reviews have a cap. Blockers stay in the task; adjacent polish becomes a follow-up.
-- Local checks, commits, pushes, deployments, and production proof are separate claims.
-- Module knowledge stays near the module. Temporary execution state stays in the task journal.
+The first useful output is a **Finish Card**:
 
-Read [how it works](docs/how-it-works.md) for the full sequence.
+```text
+FINISH CARD
 
-## Optional automation
+Goal             CSV export emits each logical row once.
+Scope            Export pagination and deduplication only.
+Acceptance       Red reproduction, regression, real export, project gates.
+Delivery boundary
+                 Local verification. No push or deploy claim.
+```
 
-If you run several agents across long sessions and need explicit session binding, recoverable handoffs, checkpoints, or completion hooks, see [optional-automation](optional-automation/README.md).
+The final output closes the same card with current evidence and one honest receipt:
 
-It is an advanced, separate Node.js package. The playbook and skills do not need it.
+```text
+LOCAL-ONLY: Duplicate export rows are fixed.
 
-## Contributing
+Verified: failing reproduction, regression, affected checks, real export flow.
+Not claimed: commit, push, deploy, production behavior.
+```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [provenance](docs/provenance.md). The root project is MIT licensed; included third-party skills keep their upstream notices.
+That is the product. There is no framework to configure before useful work starts.
+
+## How it works
+
+```text
+request
+  → Finish Card
+  → failing reproduction or observable acceptance
+  → complete scoped change
+  → project gates + real user path
+  → evidence receipt at the authorized delivery boundary
+```
+
+`finish-task` branches by the work in front of it:
+
+- **Bug:** reproduce → isolate the cause → failing regression → fix → rerun the real path.
+- **Feature:** observable acceptance → scope → implementation → acceptance and project gates.
+- **Architecture change:** resolve ownership, authority, lifecycle and module seams before broad edits.
+- **Delivery:** keep local, commit, push, deploy and production verification as separate facts.
+
+For multi-step or long-session work, the skill persists the Finish Card in the project's task-doc location or `.agent/tasks/<slug>.md`. A one-step change can keep the card in chat.
+
+Read [the workflow and evidence model](docs/how-it-works.md) for the exact sequence.
+
+## Install, update, remove
+
+The command above uses the open [`skills`](https://github.com/vercel-labs/skills) installer and lets you choose the detected agent. To target Codex and Claude Code explicitly:
+
+```sh
+npx skills add malakhov-dmitrii/agent-process-kit --skill finish-task -a codex -a claude-code
+```
+
+Use `-g` for a user-level install shared by projects. Without `-g`, the installer keeps the skill with the current project so a team can review and version it.
+
+```sh
+npx skills update finish-task
+npx skills remove finish-task
+```
+
+Restricted or offline environments can copy [`skills/finish-task`](skills/finish-task) directly into the host's skill directory. The source remains ordinary Markdown.
+
+## What this replaces
+
+Version 0.2 presented a starter contract, a journal template, five abstract skills, and an optional lifecycle runtime. They were correct parts with no convincing front door. Version 0.3 makes the common job the interface: finish one real coding task with proof.
+
+The old runtime and standalone skills remain available in the immutable [v0.2.0 release](https://github.com/malakhov-dmitrii/agent-process-kit/releases/tag/v0.2.0). See [migration from v0.2](docs/migration-v0.2.md).
+
+## Limits
+
+An instruction skill cannot grant permissions, make a model reliable by itself, or prove that evidence text is true. Project rules and host controls still own access and safety. `finish-task` makes the work and its missing proof visible; the repository's real tests, runtime, browser and release system provide the evidence.
+
+Research behind this redesign: [competitive skill systems](docs/research/competitive-skill-systems-2026-10-08.md). License and provenance: [THIRD_PARTY.md](THIRD_PARTY.md) and [docs/provenance.md](docs/provenance.md).

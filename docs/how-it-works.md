@@ -1,42 +1,67 @@
-# How the process works
+# How Finish Task works
 
-The default kit is documentation. It changes how an agent approaches a task without adding a daemon, state store, package, or hook.
+`finish-task` is one deep workflow behind one small interface: a concrete coding task and an optional delivery boundary.
+
+## The artifact chain
 
 ```text
 request
-  → inspect the real project
-  → agree on scope and observable acceptance
-  → plan and review within a cap
-  → reproduce or test first
-  → implement the smallest coherent change
-  → run the real user path
-  → update documentation
-  → report the verified delivery stage
+  → Finish Card
+  → red proof
+  → scoped implementation
+  → current verification
+  → delivery receipt
 ```
 
-The journal keeps the task stable across a long session. It records decisions and evidence without trying to save private chain-of-thought. The project rules remain the authority for commands, architecture, release, and safety.
+The Finish Card stays stable while the implementation changes. It tells the agent and user what belongs in the task, what proves the result, and where delivery stops.
 
-## Where humans decide
+## 1. Discover the real project
 
-Ask before changing product direction, architecture, a public contract, persistent data, permissions, or external commitments. Show disputed UX as a concrete screen or small prototype before investing in the full implementation.
+The workflow starts from project instructions, current code, affected tests, recent related changes and the repository's actual commands. Old plans, docs and agent summaries are context until verified.
 
-Routine choices inside the agreed scope stay autonomous. A successful test or prerequisite is a reason to continue to the remaining acceptance criteria.
+A bug begins with a reproduction. A feature begins with behavior that a user or caller can observe. If the agent cannot find either, it has not earned an implementation plan yet.
 
-## Why tests and reviews are separate
+## 2. Set the finish line
 
-Tests show that selected behavior ran. Review checks whether the change belongs in the right place and preserves the intended contract. Neither proves deployment or production behavior. Keep local, pushed, deployed, and production-verified states distinct.
+The first response presents the compact goal, scope, acceptance and delivery boundary. Multi-step work persists the [Finish Card template](../skills/finish-task/references/finish-card.md).
 
-Reviews have a cap because another full review can always find another improvement. After the first round, focus on blockers. Put adjacent cleanup into follow-ups unless the user expands the task.
+The delivery boundary defaults to local verification. Commit, push, deploy and production verification require the user's intent plus the project's own release rules.
 
-## Documentation placement
+The scope lock names non-goals and caps review. Later findings enter the current task only when they block acceptance, risk data loss or duplicate actions, create a security hole, leave an unrecoverable stuck state, or break a production path. Everything else becomes a follow-up.
 
-- Root project instructions contain durable rules and pointers.
-- Module docs contain ownership, contracts, known constraints, and checks.
-- The task journal contains temporary execution state.
-- Release records contain what actually reached an environment.
+## 3. Make the right thing red
 
-Update the owning document when behavior or ownership changes. A changed file hash is only a prompt to inspect documentation; it cannot decide whether the text is still correct.
+For a bug, the reproduction must fail for the reported defect instead of a broken fixture or environment. For a feature, the acceptance check must cross the same boundary real callers use. A screenshot can prove visible state; it cannot prove keyboard access or production data. A mocked provider can prove local rules; it cannot prove the provider integration.
 
-## Optional automation
+The workflow records those limits instead of erasing the useful part of the result.
 
-The [optional runtime](../optional-automation/README.md) adds explicit cross-session binding, recoverable handoffs, checklist parsing, checkpoints, and hooks. It exists for multi-agent setups that have already experienced those failures. The playbook does not require it.
+## 4. Finish the whole card
+
+The agent implements every accepted item, preserves unrelated work and continues after successful prerequisites. Architecture detail loads only when the task changes ownership, authority, lifecycle, public contracts or reusable interfaces.
+
+The default is the smallest coherent change, not the smallest diff. A partial foundation does not satisfy a user-visible acceptance item.
+
+## 5. Verify the final state
+
+Verification runs after the last relevant edit. It combines the project's automated gates with the real handler, CLI, browser or session path when that path exists.
+
+Failures follow [first-error recovery](../skills/finish-task/references/first-error-recovery.md): preserve the error, classify it, choose a discriminating probe, repair the cause and rerun the same proof. Three failed fixes trigger a model reset before another edit.
+
+## 6. Report the delivery stage
+
+[Delivery stages](../skills/finish-task/references/delivery-stages.md) are independent claims:
+
+- local checks and UAT;
+- a commit containing that state;
+- a remote ref containing that commit;
+- an environment reporting that revision;
+- the real authenticated production flow on that revision.
+
+The final response uses one receipt and links the Finish Card when it exists. Missing later stages remain visible. This prevents a green local test, commit or push from masquerading as a production result.
+
+## What the skill cannot enforce
+
+The skill is Markdown loaded by the host. It cannot grant permissions, prevent a model from ignoring instructions, authenticate a runtime, or independently validate evidence. Host controls, project rules and the product's real systems remain authoritative.
+
+The value is a smaller, sharper interface for the work: one finish line, one durable card when needed, and claims that match their proof.
+

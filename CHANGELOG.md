@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 - 2026-10-08
+
+- Replaced the copy-a-contract front door with one promoted `finish-task` skill.
+- Added the Finish Card and separate local, commit, push, deploy and production evidence contours.
+- Made the standard `skills` CLI the recommended install/update/remove path.
+- Moved specialist architecture and recovery rules behind progressive-disclosure references.
+- Removed the v0.2 optional runtime and five abstract standalone skills from `main`; the immutable v0.2.0 release preserves them.
+- Added clean Codex/Claude Code install smoke and public-interface checks.
+
 ## 0.2.0 - 2026-10-08
 
 - Made the default kit zero-install: copy the starter contract and select only relevant skills.

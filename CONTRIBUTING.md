@@ -1,29 +1,33 @@
 # Contributing
 
-The root of the repository is a zero-install playbook. Keep its quickstart usable without Node.js or npm. Runtime changes belong under `optional-automation/`.
+Agent Process Kit is one promoted skill, `finish-task`. A contribution should make that first path clearer, more reliable or better evidenced before it adds another public concept.
 
-For documentation and skills:
+## Content rules
 
-- keep each rule in one source of truth;
-- make skill descriptions specific enough to route correctly;
-- check every local link;
-- preserve upstream licenses and attribution;
-- avoid host-specific paths and private operational details.
+- Keep `SKILL.md` procedural and compact. Put specialized branches in `references/`.
+- Write the frontmatter description as trigger conditions.
+- Give each step a checkable completion criterion.
+- Keep install commands identical in English and Russian docs.
+- Preserve upstream licenses and source links for adapted material.
+- Do not add host-specific behavior to the portable workflow.
 
-For optional automation, use Node.js 22 or 24 on Linux or macOS:
+## Verification
 
 ```sh
-npm --prefix optional-automation ci --ignore-scripts
-npm --prefix optional-automation run verify
-npm --prefix optional-automation run pack:check
+node scripts/check.mjs
+node --test tests/*.test.mjs
+node scripts/install-smoke.mjs
+git diff --check
 ```
 
-Reproduce a runtime bug before fixing it. Test observable behavior plus interruption/retry paths. Tests use temporary state, local Git repositories, synthetic values, and localhost fixtures. They must not invoke paid models or production services.
+The install smoke uses pinned `skills@1.7.1` to install, update and remove the public skill in a clean project for Codex and Claude Code layouts.
 
-Before opening a pull request, run `git diff --check`, verify the root starter flow by inspection, and complete the optional automation gate when that subtree changed. Describe user-visible behavior, evidence, documentation changes, and remaining limits.
+A workflow change also needs a clean-agent scenario with a realistic repository task. Record whether the run proved discovery, Finish Card creation, implementation behavior, verification or final receipt shape. Do not claim that one model run proves all hosts.
 
-Do not commit task journals, runtime receipts, credentials, machine configuration, private Git history, or downloaded build artifacts.
+## Pull requests
+
+Describe the user-visible change, the failure or friction it addresses, current evidence, documentation changes and remaining limits. Keep unrelated cleanup out of the branch.
 
 ## Releases
 
-Releases use the protected `main` commit after CI. Source archives cover the whole playbook. The optional automation tarball is built from `optional-automation/` and distributed as a GitHub Release asset with `SHA256SUMS`. npm-registry publication is a separate decision.
+Releases use the exact protected `main` commit after post-merge CI. Publish a source archive, a `finish-task.skill` archive and checksums. Download the assets again and verify them before closing the release task.

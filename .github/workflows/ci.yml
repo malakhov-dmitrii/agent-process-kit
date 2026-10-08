@@ -16,7 +16,7 @@ jobs:
   verify:
     name: Node ${{ matrix.node }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -29,17 +29,19 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node }}
-          cache: npm
-          cache-dependency-path: optional-automation/package-lock.json
-      - name: Check zero-install surface
-        run: |
-          test -f starter/AGENTS.md
-          test -f starter/task-journal.md
-          test -f docs/how-it-works.md
-          test -f docs/choosing-skills.md
-          test ! -d vendor
-          shasum -a 256 -c licenses/SHA256SUMS
-          git diff --check
-      - run: npm --prefix optional-automation ci --ignore-scripts
-      - run: npm --prefix optional-automation run verify
-      - run: npm --prefix optional-automation run pack:check
+      - run: node scripts/check.mjs
+      - run: node --test tests/*.test.mjs
+      - run: git diff --check
+
+  install-smoke:
+    name: Clean install / Codex + Claude Code
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - run: node scripts/install-smoke.mjs
