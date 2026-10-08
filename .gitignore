@@ -1,4 +1,5 @@
 node_modules/
+optional-automation/node_modules/
 .agent/
 .work/
 .omx/
@@ -10,7 +11,7 @@ dist/
 .env
 .env.*
 !.env.example
-harness/runtime-state/
-harness/logs/
-harness/checkpoints/
-harness/transactions/
+optional-automation/harness/runtime-state/
+optional-automation/harness/logs/
+optional-automation/harness/checkpoints/
+optional-automation/harness/transactions/

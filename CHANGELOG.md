@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.1.0 — 2026-10-07
+## 0.2.0 - 2026-10-08
+
+- Made the default kit zero-install: copy the starter contract and select only relevant skills.
+- Added a concise journal template and guides for the workflow and skill selection.
+- Moved the executable lifecycle package into `optional-automation/`.
+- Removed the vendored Superpowers snapshot and linked to its upstream project.
+- Kept the optional runtime test, smoke, packaging, and recovery gates intact.
+
+## 0.1.0 - 2026-10-07
 
 Initial public release:
 

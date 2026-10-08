@@ -30,6 +30,16 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm run verify
-      - run: npm run pack:check
+          cache-dependency-path: optional-automation/package-lock.json
+      - name: Check zero-install surface
+        run: |
+          test -f starter/AGENTS.md
+          test -f starter/task-journal.md
+          test -f docs/how-it-works.md
+          test -f docs/choosing-skills.md
+          test ! -d vendor
+          shasum -a 256 -c licenses/SHA256SUMS
+          git diff --check
+      - run: npm --prefix optional-automation ci --ignore-scripts
+      - run: npm --prefix optional-automation run verify
+      - run: npm --prefix optional-automation run pack:check

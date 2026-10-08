@@ -1,9 +1,14 @@
 # Provenance
 
-The kit was extracted from an operator's local workflow and hardened as a separate public project. Public Git history starts clean. Private histories, journals, credentials, endpoints and machine profiles are excluded.
+Agent Process Kit was extracted from a working local agent setup and published with a clean public history. Private sessions, journals, credentials, provider endpoints, machine profiles, and the original private Git history are excluded.
 
-The public release deliberately differs from the sharing archive: separate default state, validated journal identity, canonical handoff acknowledgement, recoverable pending acceptance, truthful `ready` output, opt-in project setup, portable CLI, CI and maintained public docs. Personal operational routing and service-specific diagnostics are removed from the active surface.
+The public project has two surfaces:
 
-Skill sources and licenses are listed in [THIRD_PARTY.md](../THIRD_PARTY.md). Superpowers retains its installed 6.4.1 snapshot and license; other libraries retain attribution and verified license copies. Compatibility with every host or future upstream version is not implied.
+- a zero-install starter contract, journal template, explanatory docs, and five licensed skills;
+- optional automation for operators who need explicit session binding, recoverable handoffs, checkpoints, or hooks.
 
-Release checksums establish artifact identity. They do not certify every workflow or agent decision.
+The default playbook is intentionally smaller than the source environment. Personal role routing, deployment conventions, service-specific diagnostics, and installed plugin catalogs are not part of it.
+
+Skill sources and license copies are listed in [THIRD_PARTY.md](../THIRD_PARTY.md). Broader libraries such as [Superpowers](https://github.com/obra/superpowers) stay upstream rather than being vendored.
+
+Release checksums establish artifact identity. They do not certify every workflow choice or agent decision.

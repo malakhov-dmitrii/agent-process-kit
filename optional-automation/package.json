@@ -1,0 +1,22 @@
+{
+  "name": "@malakhov-dmitrii/agent-process-kit",
+  "version": "0.2.0",
+  "description": "Optional session binding, handoff and completion automation for Agent Process Kit.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Dmitrii Malakhov",
+  "engines": { "node": ">=22" },
+  "bin": { "agent-process-kit": "bin/agent-process-kit.mjs" },
+  "repository": { "type": "git", "url": "git+https://github.com/malakhov-dmitrii/agent-process-kit.git" },
+  "bugs": { "url": "https://github.com/malakhov-dmitrii/agent-process-kit/issues" },
+  "homepage": "https://github.com/malakhov-dmitrii/agent-process-kit/tree/main/optional-automation#readme",
+  "keywords": ["coding-agents", "task-context", "handoff", "claude-code", "codex"],
+  "files": ["bin/", "lib/", "harness/", "docs/", "checks/", "scripts/", "tests/", "README.md", "SECURITY.md", "LICENSE"],
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node --test --test-reporter=tap harness/bin/*.test.mjs tests/*.test.mjs",
+    "smoke": "node checks/runtime-smoke.mjs harness",
+    "verify": "npm run check && npm test && npm run smoke",
+    "pack:check": "node scripts/pack-check.mjs"
+  }
+}

@@ -1,23 +1,29 @@
 # Contributing
 
-Use Node.js 22+ on Linux/macOS. There are no runtime dependencies or install scripts.
+The root of the repository is a zero-install playbook. Keep its quickstart usable without Node.js or npm. Runtime changes belong under `optional-automation/`.
+
+For documentation and skills:
+
+- keep each rule in one source of truth;
+- make skill descriptions specific enough to route correctly;
+- check every local link;
+- preserve upstream licenses and attribution;
+- avoid host-specific paths and private operational details.
+
+For optional automation, use Node.js 22 or 24 on Linux or macOS:
 
 ```sh
-npm ci --ignore-scripts
-npm run verify
-npm run pack:check
+npm --prefix optional-automation ci --ignore-scripts
+npm --prefix optional-automation run verify
+npm --prefix optional-automation run pack:check
 ```
 
-Reproduce bugs before fixes. Test observable contracts and failure/retry paths. Keep one canonical owner for identity, handoff state and filesystem writes. Avoid source-text tests unless the text itself is a public contract.
+Reproduce a runtime bug before fixing it. Test observable behavior plus interruption/retry paths. Tests use temporary state, local Git repositories, synthetic values, and localhost fixtures. They must not invoke paid models or production services.
 
-The CLI is the public interface. Document changes to storage, exit codes, setup receipts, authority and recovery. New public behavior needs CLI acceptance coverage; new dependencies need a concrete reason.
+Before opening a pull request, run `git diff --check`, verify the root starter flow by inspection, and complete the optional automation gate when that subtree changed. Describe user-visible behavior, evidence, documentation changes, and remaining limits.
 
-Isolate tests from personal state, credentials, paid models and production. Preserve package checks from a Git checkout, release artifact and a path with spaces.
+Do not commit task journals, runtime receipts, credentials, machine configuration, private Git history, or downloaded build artifacts.
 
-Keep upstream licenses. Verify provenance when updating vendored skills. Never commit private sessions, receipts, machine profiles or private Git history.
+## Releases
 
-Open a focused issue/PR with the problem, behavior, evidence and limits. Maintainers may defer work outside the local task-lifecycle scope.
-
-## Release
-
-Run the gate and package test, publish a clean commit, wait for CI, tag a version, and upload package/source archives with SHA256SUMS. Assets must match the tagged source. npm-registry publishing is a separate decision.
+Releases use the protected `main` commit after CI. Source archives cover the whole playbook. The optional automation tarball is built from `optional-automation/` and distributed as a GitHub Release asset with `SHA256SUMS`. npm-registry publication is a separate decision.

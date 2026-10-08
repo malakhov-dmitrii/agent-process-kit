@@ -6,7 +6,8 @@ Which docs, public contracts or recovery paths changed?
 
 Verification performed:
 
-- [ ] `npm run verify`
-- [ ] `npm run pack:check`
+- [ ] Zero-install starter and documentation checked
+- [ ] `npm --prefix optional-automation run verify` when runtime changed
+- [ ] `npm --prefix optional-automation run pack:check` when runtime/package changed
 - [ ] Relevant negative/recovery cases
 - [ ] No private runtime state or secrets
