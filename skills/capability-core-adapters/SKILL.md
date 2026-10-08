@@ -134,12 +134,7 @@ write or review the contract.
 Load `references/framework-cheatsheet.md` when you need compact terminology,
 examples, or a summary to copy into project docs.
 
-Read `docs/agent-operating-model.md` in the repository when the task involves
-agent instructions, multi-entrypoint behavior, or preventing codebase drift.
-
-Read `docs/agent-workflows.md` when the task needs staged planning, TDD,
-subagents, review, recovery, or a finish gate.
-
-Read `docs/agent-tooling.md` when the project uses `context-mode`, `CodeGraph`,
-or similar retrieval tools. Use those tools for discovery and impact checks, not
-as a replacement for ownership decisions, contracts, or tests.
+When the task involves agent instructions, staged workflows or retrieval tools,
+inspect the project's actual docs and conventions instead of assuming standard
+filenames. Use structural indexes for discovery and impact checks, not as a
+replacement for ownership decisions, contracts or tests.
