@@ -10,6 +10,7 @@ const install = 'npx skills add malakhov-dmitrii/agent-process-kit --skill finis
 const pack = ['capability-contract', 'capability-core-adapters', 'codebase-design', 'depth-lock', 'finish-task', 'verify-delivery', 'writing-for-agents'];
 const packInstall = "npx skills add malakhov-dmitrii/agent-process-kit --skill '*' -a codex -a claude-code";
 const packRemove = `npx skills remove ${pack.join(' ')} -a codex -a claude-code -y`;
+const singleUpdate = 'npx skills update finish-task --project -y';
 
 test('the public catalog has one front door and a coherent skill pack', () => {
   const skillNames = readdirSync(join(root, 'skills'), { withFileTypes: true })
@@ -42,6 +43,9 @@ test('the public catalog has one front door and a coherent skill pack', () => {
       assert.ok(existsSync(join(root, 'skills', skillName, distributedNotice)), `${skillName}/${distributedNotice}`);
     }
   }
+
+  const capabilityCore = read('skills/capability-core-adapters/SKILL.md');
+  assert.doesNotMatch(capabilityCore, /docs\/agent-(?:operating-model|workflows|tooling)\.md/);
 });
 
 test('the landing page reaches first value before internals', () => {
@@ -56,6 +60,7 @@ test('the landing page reaches first value before internals', () => {
     assert.ok(body.includes(install));
     assert.ok(body.includes(packInstall));
     assert.ok(body.includes(packRemove));
+    assert.ok(body.includes(singleUpdate));
     assert.ok(body.indexOf(install) < body.indexOf('## How it works') || body.indexOf(install) < body.indexOf('## Как это работает'));
   }
 

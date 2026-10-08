@@ -88,6 +88,8 @@ const single = fixture('single-project');
 const singleInstall = JSON.parse(skills(single, 'add', root, '--skill', 'finish-task', '-a', 'codex', '-a', 'claude-code', '--copy', '-y', '--json'));
 assert.deepEqual(singleInstall.map((item) => item.name), ['finish-task']);
 assertInstalled(single, ['finish-task']);
+skills(single, 'update', 'finish-task', '--project', '-y');
+assertInstalled(single, ['finish-task']);
 skills(single, 'remove', 'finish-task', '-a', 'codex', '-a', 'claude-code', '-y');
 assertRemoved(single, ['finish-task']);
 

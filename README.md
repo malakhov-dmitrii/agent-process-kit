@@ -95,6 +95,7 @@ The commands above use the open [`skills`](https://github.com/vercel-labs/skills
 
 ```sh
 npx skills update
+npx skills update finish-task --project -y
 npx skills remove capability-contract capability-core-adapters codebase-design depth-lock finish-task verify-delivery writing-for-agents -a codex -a claude-code -y
 ```
 
