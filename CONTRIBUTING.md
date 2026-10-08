@@ -1,6 +1,6 @@
 # Contributing
 
-Agent Process Kit is a seven-skill pack with one front door, `finish-task`. A contribution should keep the pack coherent, the front door obvious and every standalone skill independently installable.
+Agent Process Kit is a seven-skill pack with one front door, `orchestrate-task`, plus a dependency-free runtime. A contribution should keep the pack coherent, the front door obvious and every standalone skill independently installable.
 
 ## Content rules
 
@@ -21,9 +21,9 @@ node scripts/install-smoke.mjs
 git diff --check
 ```
 
-The install smoke uses pinned `skills@1.7.1` to install, update and remove the public skill in a clean project for Codex and Claude Code layouts.
+The install smoke uses pinned `skills@1.7.1` to install, update and remove the full pack and front door in clean `.agents` and `.claude` project layouts. It also checks the published runtime/setup files.
 
-A workflow change also needs a clean-agent scenario with a realistic repository task. Record whether the run proved discovery, Finish Card creation, implementation behavior, verification or final receipt shape. Do not claim that one model run proves all hosts.
+A workflow change also needs a clean-agent scenario with a realistic repository task. Record whether the run proved discovery, natural-task routing, durable task/artifact creation, implementation behavior, verification or final receipt shape. Do not claim that one model run proves all hosts.
 
 ## Pull requests
 
@@ -31,4 +31,4 @@ Describe the user-visible change, the failure or friction it addresses, current 
 
 ## Releases
 
-Releases use the exact protected `main` commit after post-merge CI. Publish a source archive, a `finish-task.skill` archive and checksums. Download the assets again and verify them before closing the release task.
+Releases use the exact protected `main` commit after post-merge CI. Publish a source archive, a runtime/package archive and checksums. Download the assets again and verify them before closing the release task.

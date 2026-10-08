@@ -1,39 +1,50 @@
-# Migrating from v0.2
+# Migrating the optional v0.2 runtime
 
-Version 0.3.1 keeps the five v0.2 craft skills, adds `finish-task` as their front door, and adds `verify-delivery` as a standalone guardrail. Existing project instructions and journals keep working.
+The v0.2 runtime stores authority under a state root containing explicit session
+bindings and root-level `handoffs/*.json` records. v0.4 imports one quiescent task into the canonical task
+store. The journal remains a human projection; its only migration identity is a
+single unfenced `Task-ID:` line.
 
-## What moved
+The adapter is `runtime/adapters/migrate-v0.2.mjs`:
 
-| v0.2 | v0.3 |
-|---|---|
-| copy `starter/AGENTS.md` | install and invoke `finish-task` |
-| five standalone craft skills | the same five, refreshed and independently installable |
-| no common entrypoint | `finish-task` orchestrates the common end-to-end path |
-| delivery proof embedded in the contract/runtime | `verify-delivery` is a standalone skill and part of `finish-task` |
-| copy `starter/task-journal.md` | Finish Card created only when the task needs persistence |
-| optional lifecycle runtime | preserved in the [v0.2.0 release](https://github.com/malakhov-dmitrii/agent-process-kit/releases/tag/v0.2.0) |
+```js
+const plan = dryRunMigration({ sourceRoot: oldStateRoot, taskId: 'task-1', sessionId: 'session-1', workspace: repo });
+const receipt = applyMigration({ sourceRoot: oldStateRoot, destinationRoot: newStateRoot, snapshot: plan.snapshot, snapshotDigest: plan.snapshotDigest, ownerHost: 'codex', ownerSession: 'session-1' });
+```
 
-The old release remains immutable. Its source archive and optional automation tarball are still downloadable with checksums.
+Dry-run refuses provisional or malformed bindings, duplicate task identities,
+journal mismatches, workspace mismatches, inconsistent prepared or accepted
+handoffs, symlinks, and any legacy lock. Multiple explicit sessions for one
+task are allowed when their repo, worktree and journal identities agree. An
+accepted handoff selects its matching receiver as the imported owner. It returns the exact source file list,
+source fingerprint and a digest of the complete dry-run snapshot. Apply accepts
+that digest from the caller and rechecks the source before changing state.
 
-## Move a project to the pack
+The adapter first writes a `prepared` receipt containing the source and
+destination intent. Cutover then renames the old root to a read-only quarantine, verifies its byte
+fingerprint, and creates a regular tombstone at the former path. A resumed
+cutover with an existing quarantine must prove the exact deterministic
+tombstone bytes; a missing or foreign replacement writes a `blocked` receipt
+and cannot activate any v0.4 task, lease or binding. Legacy code cannot
+recreate the old directory or write into it. The apply receipt persists
+`quarantined`, `lease-acquired`, `binding-created` and `installed` phases, so
+each activation boundary can resume idempotently. Only after this sequence
+does the adapter create the v0.4 task, bind the imported session and acquire
+the first canonical lease. The receipt is stored under
+`<destination>/migrations/<task-id>.json` and records source, quarantine,
+tombstone, destination, snapshot, imported session and lease digests.
 
-1. Keep your existing `AGENTS.md`, `CLAUDE.md`, task journals and project rules. They are user-owned and may contain stricter requirements.
-2. Install or refresh the full pack:
-
-   ```sh
-   npx skills add malakhov-dmitrii/agent-process-kit --skill '*' -a codex -a claude-code
-   ```
-
-3. If the v0.2 skills were copied manually, replace those five folders with the current versions. Do not delete project-authored skills with the same names; move or rename them first.
-
-4. Start end-to-end work with `Use finish-task on this: ...`, or invoke one craft skill directly.
-
-An existing task journal remains the task's record. `finish-task` should update it instead of creating a competing Finish Card.
-
-## From v0.3.0
-
-Run the full-pack install command above. The existing `finish-task` is updated and the six standalone skills are added. No project task records are rewritten.
-
-## Optional automation
-
-The v0.2 runtime is no longer part of `main`. Keep using the pinned v0.2.0 asset if you rely on its session binding, handoff or hook behavior. Do not combine a moving `main` checkout with the pinned runtime package and assume they share a contract.
+If a process stops after the receipt or rename, rerunning with the same snapshot
+resumes from the recorded phase. A quarantine fingerprint mismatch records a
+blocked receipt before failing. A completed migration is idempotent when its receipt and
+snapshot digest match. Rollback requires the exact imported lease context, no
+post-import record, session or handoff mutation, grant or external attempt, and
+no foreign edits. It persists `rollbackPhase` values `prepared`,
+`ownership-revoked`, `removing` and `restored`. It first revokes the imported
+lease so the v0.4 owner is unusable, removes the imported task and binding,
+then validates the exact tombstone bytes before deleting it and restores the
+unchanged quarantine. A resumed rollback accepts the durable
+`ownership-revoked`, `removing` or `restored` phase without replaying the
+revocation. A foreign tombstone replacement always survives and refuses
+rollback. It never starts a host and preserves the migration receipt in its
+`rolled-back` phase.

@@ -1,114 +1,97 @@
 # Agent Process Kit
 
-## Give your coding agent a finish line.
+## Give your coding agent a durable finish line.
 
 [![CI](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml)
 [Русский](README.ru.md) · [How it works](docs/how-it-works.md) · [Compatibility](docs/compatibility.md)
 
-Agent Process Kit is a pack of seven plain `SKILL.md` workflows. Start with `finish-task`: it takes one concrete repository change from the first inspection to a reviewable result, then pulls in the pack's scope, architecture, authoring and delivery disciplines when they fit.
+Agent Process Kit is a dependency-free Node.js control plane with seven portable skills. `orchestrate-task` is the front door: give the agent an ordinary coding request and it selects the internal methods, records durable task state and reports the exact proof boundary.
 
-Every skill also works on its own. The pack has no daemon, hook, account, background process, telemetry, or runtime dependency.
+## Install and set up
 
-## Install the pack
-
-Install all seven skills for Codex and Claude Code:
+Run the standard project setup from the repository root:
 
 ```sh
-npx skills add malakhov-dmitrii/agent-process-kit --skill '*' -a codex -a claude-code
+npx skills add malakhov-dmitrii/agent-process-kit --skill '*' -a codex -a claude-code && npx @malakhov-dmitrii/agent-process-kit setup --apply
 ```
 
-If you only want the end-to-end front door:
+This installs the seven skills into both `.agents/skills/` and `.claude/skills/`, then writes the hash-owned runtime adapter and setup receipt into the project. Check or undo the setup with:
 
 ```sh
-npx skills add malakhov-dmitrii/agent-process-kit --skill finish-task
+npx @malakhov-dmitrii/agent-process-kit verify-setup
+npx @malakhov-dmitrii/agent-process-kit rollback --apply
 ```
+
+Use the same `skills` command with `update` to refresh a project install. The runtime is the package's `bin/`, `runtime/` and `package.json`; it has no daemon, account, telemetry service or background process.
 
 ## Try it on real work
 
-Give your agent a real task:
+Give your agent a normal request. You do not need to name a skill:
 
-> Use `finish-task` on this: fix duplicate rows in CSV export. Keep the scope to the export path, prove the bug before changing code, run the real export flow, and stop at local verification.
+> Fix duplicate rows in CSV export. Keep the scope to the export path, prove the bug before changing code, run the real export flow, and stop at local verification.
 
-The first useful output is a **Finish Card**:
+For a clear mechanical request, the agent records the mode and proceeds. It asks a question only when a product, scope, architecture, data, permission or delivery choice is material. Every task leaves a durable record with its goal, phase, progress, pending decisions, evidence, delivery state and next owner/action. Large work also stores immutable specification, plan, review and proof artifacts.
 
-```text
-FINISH CARD
-
-Goal             CSV export emits each logical row once.
-Scope            Export pagination and deduplication only.
-Acceptance       Red reproduction, regression, real export, project gates.
-Delivery boundary
-                 Local verification. No push or deploy claim.
-```
-
-The final output closes the same card with current evidence and one honest receipt:
+The lifecycle is:
 
 ```text
-LOCAL-ONLY: Duplicate export rows are fixed.
-
-Verified: failing reproduction, regression, affected checks, real export flow.
-Not claimed: commit, push, deploy, production behavior.
+natural request
+  → conditional clarification
+  → reviewed specification and executable plan
+  → ATDD red proof and TDD implementation
+  → bounded code review
+  → real local UAT
+  → authorized release
+  → production UAT and observation
 ```
 
-That is the product. There is no framework to configure before useful work starts.
+The proof contours stay separate: local checks and UAT, commit, push, deploy, authenticated production behavior. A commit does not prove a push; a push does not prove deployment; a deploy does not prove production behavior.
 
-## How it works
+Use ordinary control words when the task is bound:
 
 ```text
-request
-  → Finish Card
-  → failing reproduction or observable acceptance
-  → complete scoped change
-  → diff review against the card and project rules
-  → project gates + real user path
-  → evidence receipt at the authorized delivery boundary
+дай статус   # durable status projection
+продолжай    # continue the next authorized phase
+кати         # continue to the locked release boundary
+pause        # pause and revoke active grants
+stop         # cancel after containment
 ```
 
-`finish-task` branches by the work in front of it:
-
-- **Bug:** reproduce → isolate the cause → failing regression → fix → rerun the real path.
-- **Feature:** observable acceptance → scope → implementation → acceptance and project gates.
-- **Architecture change:** resolve ownership, authority, lifecycle and module seams before broad edits.
-- **Delivery:** keep local, commit, push, deploy and production verification as separate facts.
-
-For multi-step or long-session work, the skill persists the Finish Card in the project's task-doc location or `.agent/tasks/<slug>.md`. A one-step change can keep the card in chat.
-
-Read [the workflow and evidence model](docs/how-it-works.md) for the exact sequence.
+The status projection names the exact task, goal, phase, completed/total lanes, current/stale/missing evidence, delivery state, pending decisions, last trace and next action. It does not reconstruct state from chat history.
 
 ## What's in the pack
 
 | Layer | Skill | Job |
 |---|---|---|
-| Start here | [`finish-task`](skills/finish-task/SKILL.md) | Carry one code change from scope to proof |
+| Start here | [`orchestrate-task`](skills/orchestrate-task/SKILL.md) | Route ordinary tasks through the durable control plane |
 | Guardrail | [`depth-lock`](skills/depth-lock/SKILL.md) | Lock scope, review rounds and checkpoints |
-| Guardrail | [`verify-delivery`](skills/verify-delivery/SKILL.md) | Match “done”, push, deploy and production claims to current evidence |
+| Guardrail | [`verify-delivery`](skills/verify-delivery/SKILL.md) | Match delivery claims to current evidence |
 | Architecture | [`codebase-design`](skills/codebase-design/SKILL.md) | Design deep modules, interfaces and seams |
-| Architecture | [`capability-core-adapters`](skills/capability-core-adapters/SKILL.md) | Keep product behavior behind thin entrypoint adapters |
-| Architecture | [`capability-contract`](skills/capability-contract/SKILL.md) | Define truth, authority, lifecycle, commands and degraded states |
-| Meta | [`writing-for-agents`](skills/writing-for-agents/SKILL.md) | Write skills and agent instructions that fire reliably |
+| Architecture | [`capability-core-adapters`](skills/capability-core-adapters/SKILL.md) | Keep product behavior behind thin adapters |
+| Architecture | [`capability-contract`](skills/capability-contract/SKILL.md) | Define truth, authority, lifecycle and degraded states |
+| Meta | [`writing-for-agents`](skills/writing-for-agents/SKILL.md) | Write reliable skills and agent instructions |
 
-`finish-task` is the memorable path through the pack. The other six remain independently discoverable and installable; you do not need to run the full train for a narrow architecture or authoring task.
+Internal methods are selected by the front door when their branch applies. You can still install any skill alone for a narrow task.
 
 ## Install, update, remove
 
-The commands above use the open [`skills`](https://github.com/vercel-labs/skills) installer. Without `-g`, the installer keeps the skills with the current project so a team can review and version them. Add `-g` for a user-level install shared by projects.
+The standard installer keeps project copies that a team can inspect and version. To update the full project pack:
 
 ```sh
-npx skills update
-npx skills update finish-task --project -y
-npx skills remove capability-contract capability-core-adapters codebase-design depth-lock finish-task verify-delivery writing-for-agents -a codex -a claude-code -y
+npx skills update --project -y
+npx skills update orchestrate-task --project -y
 ```
 
-To install or remove one skill, replace the list with its name. Restricted or offline environments can copy any folder under [`skills/`](skills) directly into the host's skill directory.
+To remove it from both claimed hosts:
 
-## What this replaces
+```sh
+npx skills remove capability-contract capability-core-adapters codebase-design depth-lock orchestrate-task verify-delivery writing-for-agents -a codex -a claude-code -y
+```
 
-Version 0.2 presented five independent skills but no convincing front door. Version 0.3.0 overcorrected and reduced the product to `finish-task`. The current pack keeps that strong entrypoint and restores the independent craft skills around it, with `verify-delivery` added as a reusable proof guardrail.
+In a restricted environment, copy a skill directory under [`skills/`](skills) with all its supporting files. Every skill contains its own `LICENSE` and `NOTICE.md`.
 
-The old runtime and standalone skills remain available in the immutable [v0.2.0 release](https://github.com/malakhov-dmitrii/agent-process-kit/releases/tag/v0.2.0). See [migration from v0.2](docs/migration-v0.2.md).
+## Limits and history
 
-## Limits
+Instruction skills do not grant permissions, make a model reliable by themselves or prove that evidence text is true. Project rules, host controls and real test, browser, provider and production systems remain authoritative.
 
-An instruction skill cannot grant permissions, make a model reliable by itself, or prove that evidence text is true. Project rules and host controls still own access and safety. `finish-task` makes the work and its missing proof visible; the repository's real tests, runtime, browser and release system provide the evidence.
-
-Research behind this redesign: [competitive skill systems](docs/research/competitive-skill-systems-2026-10-08.md). License and provenance: [THIRD_PARTY.md](THIRD_PARTY.md) and [docs/provenance.md](docs/provenance.md).
+The v0.3.1 release used `finish-task` as its front door. v0.4 replaces that public entrypoint with `orchestrate-task` and adds the runtime/setup package. The immutable [v0.2.0 release](https://github.com/malakhov-dmitrii/agent-process-kit/releases/tag/v0.2.0) remains the migration source. See [compatibility](docs/compatibility.md), [security](SECURITY.md), [third-party notices](THIRD_PARTY.md) and [provenance](docs/provenance.md).

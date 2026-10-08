@@ -1,0 +1,21 @@
+{
+  "name": "@malakhov-dmitrii/agent-process-kit",
+  "version": "0.4.0",
+  "description": "Dependency-free task control plane for coding agents.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Dmitrii Malakhov",
+  "engines": { "node": ">=22" },
+  "bin": { "agent-process-kit": "bin/agent-process-kit.mjs" },
+  "repository": { "type": "git", "url": "git+https://github.com/malakhov-dmitrii/agent-process-kit.git" },
+  "bugs": { "url": "https://github.com/malakhov-dmitrii/agent-process-kit/issues" },
+  "homepage": "https://github.com/malakhov-dmitrii/agent-process-kit#readme",
+  "keywords": ["coding-agents", "codex", "claude-code", "task-orchestration", "tdd", "uat"],
+  "files": ["bin/", "runtime/", "skills/", "docs/", "README.md", "README.ru.md", "CHANGELOG.md", "LICENSE", "SECURITY.md", "THIRD_PARTY.md"],
+  "scripts": {
+    "test": "node --test tests/*.test.mjs tests/core/*.test.mjs tests/integration/*.test.mjs tests/host/*.test.mjs tests/e2e/*.test.mjs",
+    "check": "node scripts/check.mjs",
+    "smoke": "node --test tests/host/package-smoke.test.mjs",
+    "verify": "npm run check && npm test && npm run smoke"
+  }
+}

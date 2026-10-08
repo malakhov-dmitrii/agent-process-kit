@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-process-kit.dev/schemas/artifact.schema.json",
+  "title": "Agent Process Kit artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["artifactId", "taskId", "type", "generation", "contentHash", "producer", "createdAt", "sourceInputs"],
+  "properties": {
+    "artifactId": { "type": "string", "minLength": 1 },
+    "taskId": { "type": "string", "minLength": 1 },
+    "type": { "type": "string", "minLength": 1 },
+    "generation": { "type": "integer", "minimum": 0 },
+    "contentHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "producer": { "type": "object" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "sourceInputs": { "type": "array" },
+    "candidateIdentity": { "type": "object" },
+    "environmentIdentity": { "type": "object" }
+  }
+}

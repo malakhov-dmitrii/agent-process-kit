@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 - unreleased
+
+- Replaced the v0.3.1 `finish-task` front door with `orchestrate-task` for ordinary natural-language requests.
+- Added the dependency-free Node.js runtime, CLI, durable task record, artifact references and hash-guarded project setup/rollback.
+- Added conditional clarification, reviewed specification and plan, ATDD/TDD, bounded review, local UAT and separate release/production proof contours to the public onboarding.
+- Updated Codex and Claude clean-install smoke coverage, per-skill notices and licenses, and English/Russian command parity.
+
 ## 0.3.1 - 2026-10-08
 
 - Kept `finish-task` as the front door and restored the five standalone v0.2 craft skills.

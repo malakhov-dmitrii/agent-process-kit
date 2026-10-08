@@ -31,7 +31,7 @@ const expectedSkills = [
   'capability-core-adapters',
   'codebase-design',
   'depth-lock',
-  'finish-task',
+  'orchestrate-task',
   'verify-delivery',
   'writing-for-agents',
 ];
@@ -48,14 +48,10 @@ for (const name of skills) {
   assert.ok(existsSync(join(skillRoot, name, 'NOTICE.md')), `${name} has no distributed NOTICE`);
 }
 
-const finishSkill = readFileSync(join(skillRoot, 'finish-task', 'SKILL.md'), 'utf8');
-assert.ok(finishSkill.length < 8000, 'finish-task must keep specialist detail behind references');
+const orchestrateSkill = readFileSync(join(skillRoot, 'orchestrate-task', 'SKILL.md'), 'utf8');
+assert.ok(orchestrateSkill.length < 8000, 'orchestrate-task must keep specialist detail behind references');
 for (const reference of ['delivery-stages.md', 'evidence-receipt.md']) {
-  assert.equal(
-    readFileSync(join(skillRoot, 'finish-task', 'references', reference), 'utf8'),
-    readFileSync(join(skillRoot, 'verify-delivery', 'references', reference), 'utf8'),
-    `${reference} portable copies differ`,
-  );
+  assert.ok(existsSync(join(skillRoot, 'verify-delivery', 'references', reference)), reference);
 }
 
 let links = 0;

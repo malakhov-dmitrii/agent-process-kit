@@ -12,7 +12,7 @@ const expected = [
   'capability-core-adapters',
   'codebase-design',
   'depth-lock',
-  'finish-task',
+  'orchestrate-task',
   'verify-delivery',
   'writing-for-agents',
 ];
@@ -85,12 +85,16 @@ skills(pack, 'remove', ...expected, '-a', 'codex', '-a', 'claude-code', '-y');
 assertRemoved(pack, expected);
 
 const single = fixture('single-project');
-const singleInstall = JSON.parse(skills(single, 'add', root, '--skill', 'finish-task', '-a', 'codex', '-a', 'claude-code', '--copy', '-y', '--json'));
-assert.deepEqual(singleInstall.map((item) => item.name), ['finish-task']);
-assertInstalled(single, ['finish-task']);
-skills(single, 'update', 'finish-task', '--project', '-y');
-assertInstalled(single, ['finish-task']);
-skills(single, 'remove', 'finish-task', '-a', 'codex', '-a', 'claude-code', '-y');
-assertRemoved(single, ['finish-task']);
+const singleInstall = JSON.parse(skills(single, 'add', root, '--skill', 'orchestrate-task', '-a', 'codex', '-a', 'claude-code', '--copy', '-y', '--json'));
+assert.deepEqual(singleInstall.map((item) => item.name), ['orchestrate-task']);
+assertInstalled(single, ['orchestrate-task']);
+skills(single, 'update', 'orchestrate-task', '--project', '-y');
+assertInstalled(single, ['orchestrate-task']);
+skills(single, 'remove', 'orchestrate-task', '-a', 'codex', '-a', 'claude-code', '-y');
+assertRemoved(single, ['orchestrate-task']);
 
-console.log(`Full pack and finish-task-only install/update/remove PASS for Codex and Claude Code in ${scratch}.`);
+for (const path of ['bin/agent-process-kit.mjs', 'runtime/setup/project-setup.mjs', 'package.json']) {
+  assert.equal(existsSync(join(root, path)), true, `runtime package must include ${path}`);
+}
+
+console.log(`Full pack and orchestrate-task-only install/update/remove PASS for Codex and Claude Code in ${scratch}.`);
