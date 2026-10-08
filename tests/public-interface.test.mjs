@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const read = (path) => readFileSync(join(root, path), 'utf8');
 const install = 'npx skills add malakhov-dmitrii/agent-process-kit --skill finish-task';
+const remove = 'npx skills remove finish-task -a codex -a claude-code -y';
 
 test('the public catalog has one promoted skill', () => {
   const skillNames = readdirSync(join(root, 'skills'), { withFileTypes: true })
@@ -19,6 +20,7 @@ test('the public catalog has one promoted skill', () => {
   const skill = read('skills/finish-task/SKILL.md');
   assert.match(skill, /^---\nname: finish-task\ndescription: Use when /);
   assert.match(skill, /Finish Card/);
+  assert.match(skill, /Review the final diff/);
   assert.match(skill, /LOCAL-ONLY/);
   assert.match(skill, /PRODUCTION-VERIFIED/);
 
@@ -32,6 +34,16 @@ test('the public catalog has one promoted skill', () => {
     assert.ok(existsSync(join(root, 'skills', 'finish-task', 'references', reference)), reference);
     assert.match(skill, new RegExp(`references/${reference.replace('.', '\\.')}`));
   }
+
+  for (const distributedNotice of [
+    'LICENSE',
+    'NOTICE.md',
+    'licenses/matt-pocock-skills.txt',
+    'licenses/capability-core-adapters.txt',
+    'licenses/depth-lock.txt',
+  ]) {
+    assert.ok(existsSync(join(root, 'skills', 'finish-task', distributedNotice)), distributedNotice);
+  }
 });
 
 test('the landing page reaches first value before internals', () => {
@@ -44,6 +56,7 @@ test('the landing page reaches first value before internals', () => {
 
   for (const body of [english, russian]) {
     assert.ok(body.includes(install));
+    assert.ok(body.includes(remove));
     assert.ok(body.indexOf(install) < body.indexOf('## How it works') || body.indexOf(install) < body.indexOf('## Как это работает'));
   }
 
@@ -63,6 +76,7 @@ test('the finish card records acceptance, evidence and delivery separately', () 
     assert.match(template, new RegExp(`^${heading}$`, 'm'));
   }
   assert.match(template, /Delivery boundary/);
+  assert.match(template, /Review:/);
   assert.match(template, /Remaining work/);
   assert.match(template, /Next owner/);
 });

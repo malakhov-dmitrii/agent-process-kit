@@ -22,6 +22,7 @@ Keep the card short enough to scan while the work is moving. Prefer the project'
 
 ## Evidence
 - Red proof:
+- Review:
 - Automated checks:
 - Real user path:
 - Delivery receipts:

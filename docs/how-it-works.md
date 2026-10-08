@@ -9,6 +9,7 @@ request
   → Finish Card
   → red proof
   → scoped implementation
+  → diff review
   → current verification
   → delivery receipt
 ```
@@ -41,13 +42,19 @@ The agent implements every accepted item, preserves unrelated work and continues
 
 The default is the smallest coherent change, not the smallest diff. A partial foundation does not satisfy a user-visible acceptance item.
 
-## 5. Verify the final state
+## 5. Review the final diff
+
+Review compares the completed diff with the Finish Card and project rules. Non-trivial work uses an independent reviewer when the host provides one. Findings are either blocking or deferred; only blockers enter the current fix train, and the review cap stays fixed.
+
+The review receipt belongs in the Finish Card's Evidence section. Verification starts after blocking review findings are resolved.
+
+## 6. Verify the final state
 
 Verification runs after the last relevant edit. It combines the project's automated gates with the real handler, CLI, browser or session path when that path exists.
 
 Failures follow [first-error recovery](../skills/finish-task/references/first-error-recovery.md): preserve the error, classify it, choose a discriminating probe, repair the cause and rerun the same proof. Three failed fixes trigger a model reset before another edit.
 
-## 6. Report the delivery stage
+## 7. Report the delivery stage
 
 [Delivery stages](../skills/finish-task/references/delivery-stages.md) are independent claims:
 
@@ -64,4 +71,3 @@ The final response uses one receipt and links the Finish Card when it exists. Mi
 The skill is Markdown loaded by the host. It cannot grant permissions, prevent a model from ignoring instructions, authenticate a runtime, or independently validate evidence. Host controls, project rules and the product's real systems remain authoritative.
 
 The value is a smaller, sharper interface for the work: one finish line, one durable card when needed, and claims that match their proof.
-

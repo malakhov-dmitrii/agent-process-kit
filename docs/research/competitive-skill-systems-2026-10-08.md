@@ -68,6 +68,8 @@ This brief compares the public product surfaces of five current skill ecosystems
 
 **Observation.** The template requires only YAML `name` and `description`; the repository points to the external Agent Skills specification for the format. The document skills are source-available with separate terms, while many examples are Apache 2.0. The README explicitly says the repository is educational and behavior may differ from the production Claude implementation.
 
+**Observation.** Installation is documented for three Anthropic surfaces. Claude Code registers `anthropics/skills` as a plugin marketplace, then installs `document-skills@anthropic-agent-skills` or `example-skills@anthropic-agent-skills`; Claude.ai has the examples on paid plans and supports custom uploads; the API uses the Skills API. Invocation is an ordinary request naming the skill, such as asking Claude Code to use the PDF skill on a file. The pinned README does not document an update or removal command, so lifecycle behavior is delegated to those host/plugin surfaces. It also exposes no repository validation command or behavior test suite; instead it tells users to test thoroughly in their own environment and treats the external specification plus minimal template as the format contract.
+
 **Inference.** Agent Process Kit should keep the minimal portable frontmatter and make support files discoverable by relative links. It should separate examples/reference material from the default operational contract and label licensing/distribution status per bundle.
 
 ## Cross-system comparison
