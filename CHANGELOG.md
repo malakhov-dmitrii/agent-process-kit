@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0 - unreleased
+
+- Added `run-agent-trains`: roles, queue formats and a captain checklist for many parallel builders, integration trains and one serial release captain, with a batch cap of about six cards or sixty minutes, a main freeze while a batch is in flight, heavy-job slots, a follow-up claim queue and guards for stalls and session limits. Ships `heavy-slot.sh`, `claim.sh` and `watchdog.sh`.
+- Added `brief-agents`: a brief template with copied rules, a coverage inventory built from the code, a decision log with a promise ledger, and a defect-cause classification (spec or coverage 14, verification 8, brief 3, churn 3, regression 1, ignored rule 0 in the audited program). Ships `uncovered.sh`.
+- Added `design-gates`: a static ratchet, geometry specs and a style matrix run in two opposite themes, a new-surface rule, and a procedure that shows each gate red by planting a violation. Ships `ratchet.mjs` and an example config.
+- Added `audit-agent-program`: a three-lens retrospective (throughput, quality, parallelism) with an audit brief, a finding format and lens definitions.
+- Extended `verify-delivery` with tree-keyed gate receipts (`gate-receipt.sh`), the rule that DELIVERED needs evidence, and a specification for a stop-hook receipt gate.
+- Added the case study `docs/multi-agent-program.md` with the numbers behind the new skills and the practices that are recommended but not yet exercised.
+- The pack now has eleven skills. The install, update and remove commands, the compatibility page, the repository checks and the install smoke list all of them. `orchestrate-task` is unchanged.
+- Added `tests/scale-out-skills.test.mjs`, which runs the shipped scripts: it races the slot script and the claim script, plants violations for the ratchet, and checks the receipt key.
+
 ## 0.4.0 - unreleased
 
 - Replaced the v0.3.1 `finish-task` front door with `orchestrate-task` for ordinary natural-language requests.

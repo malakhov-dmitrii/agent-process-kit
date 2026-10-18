@@ -45,6 +45,8 @@ The built-in method skills have narrow ownership:
 
 The front door keeps their choreography internal. A user does not need to remember names or issue phase commands by hand.
 
+Four more skills cover programs that run many agents in parallel: `run-agent-trains`, `brief-agents`, `design-gates` and `audit-agent-program`. They carry their own trigger descriptions and are not new task modes. The [case study](multi-agent-program.md) explains where they came from.
+
 ## Evidence contours
 
 Every check binds to the candidate content fingerprint, task and spec/plan generations. Full-candidate evidence becomes stale after a relevant content change. Release and production evidence also bind to the target environment, artifact digest, deployment identity and observed revision.

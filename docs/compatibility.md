@@ -2,14 +2,14 @@
 
 Agent Process Kit v0.4 has two layers:
 
-- seven portable Agent Skills installed into host project directories;
+- eleven portable Agent Skills installed into host project directories;
 - a dependency-free Node.js 22 runtime and CLI installed from the package.
 
 The skills use one `SKILL.md`, relative references and optional host metadata. The runtime writes only the project-local, hash-owned files reported by its setup receipt.
 
 | Host or path | Level | What is verified |
 |---|---|---|
-| Vercel `skills` CLI 1.7.1 | install-tested | seven-skill discovery; full-pack and front-door install, update and removal in Codex and Claude layouts |
+| Vercel `skills` CLI 1.7.1 | install-tested | eleven-skill discovery; full-pack and front-door install, update and removal in Codex and Claude layouts |
 | OpenAI Codex | contract-target | natural task routing, durable status, pause/resume and delivery contours through the portable skill and CLI contract |
 | Claude Code | contract-target | same project install layout and natural task contract; host UAT is a separate release receipt |
 | Node.js 22+ | supported runtime | ESM CLI, JSON task records, setup/verify/rollback and lifecycle commands |
@@ -31,7 +31,7 @@ Update or remove the project skills with:
 
 ```sh
 npx skills update --project -y
-npx skills remove capability-contract capability-core-adapters codebase-design depth-lock orchestrate-task verify-delivery writing-for-agents -a codex -a claude-code -y
+npx skills remove audit-agent-program brief-agents capability-contract capability-core-adapters codebase-design depth-lock design-gates orchestrate-task run-agent-trains verify-delivery writing-for-agents -a codex -a claude-code -y
 ```
 
 ## Fallback

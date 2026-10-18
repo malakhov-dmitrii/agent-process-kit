@@ -5,7 +5,7 @@
 [![CI](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml)
 [Русский](README.ru.md) · [How it works](docs/how-it-works.md) · [Compatibility](docs/compatibility.md)
 
-Agent Process Kit is a dependency-free Node.js control plane with seven portable skills. `orchestrate-task` is the front door: give the agent an ordinary coding request and it selects the internal methods, records durable task state and reports the exact proof boundary.
+Agent Process Kit is a dependency-free Node.js control plane with eleven portable skills. `orchestrate-task` is the front door: give the agent an ordinary coding request and it selects the internal methods, records durable task state and reports the exact proof boundary.
 
 ## Install and set up
 
@@ -15,7 +15,7 @@ Run the standard project setup from the repository root:
 npx skills add malakhov-dmitrii/agent-process-kit --skill '*' -a codex -a claude-code && npx @malakhov-dmitrii/agent-process-kit setup --apply
 ```
 
-This installs the seven skills into both `.agents/skills/` and `.claude/skills/`, then writes the hash-owned runtime adapter and setup receipt into the project. Check or undo the setup with:
+This installs the eleven skills into both `.agents/skills/` and `.claude/skills/`, then writes the hash-owned runtime adapter and setup receipt into the project. Check or undo the setup with:
 
 ```sh
 npx @malakhov-dmitrii/agent-process-kit verify-setup
@@ -65,13 +65,21 @@ The status projection names the exact task, goal, phase, completed/total lanes, 
 |---|---|---|
 | Start here | [`orchestrate-task`](skills/orchestrate-task/SKILL.md) | Route ordinary tasks through the durable control plane |
 | Guardrail | [`depth-lock`](skills/depth-lock/SKILL.md) | Lock scope, review rounds and checkpoints |
-| Guardrail | [`verify-delivery`](skills/verify-delivery/SKILL.md) | Match delivery claims to current evidence |
+| Guardrail | [`verify-delivery`](skills/verify-delivery/SKILL.md) | Match delivery claims to current evidence and tree-keyed receipts |
 | Architecture | [`codebase-design`](skills/codebase-design/SKILL.md) | Design deep modules, interfaces and seams |
 | Architecture | [`capability-core-adapters`](skills/capability-core-adapters/SKILL.md) | Keep product behavior behind thin adapters |
 | Architecture | [`capability-contract`](skills/capability-contract/SKILL.md) | Define truth, authority, lifecycle and degraded states |
 | Meta | [`writing-for-agents`](skills/writing-for-agents/SKILL.md) | Write reliable skills and agent instructions |
+| Many agents | [`run-agent-trains`](skills/run-agent-trains/SKILL.md) | Ship parallel agents' work through trains, one release captain and heavy-job slots |
+| Many agents | [`brief-agents`](skills/brief-agents/SKILL.md) | Brief builders with copied rules, a coverage inventory and a decision log |
+| Many agents | [`design-gates`](skills/design-gates/SKILL.md) | Enforce design rules with ratchets and visual gates that are shown red first |
+| Many agents | [`audit-agent-program`](skills/audit-agent-program/SKILL.md) | Audit a finished program through throughput, quality and parallelism lenses |
 
 Internal methods are selected by the front door when their branch applies. You can still install any skill alone for a narrow task.
+
+## Running many agents
+
+The four "Many agents" skills come from a 114-hour program in which about 60 builders finished 58 work items in under three hours, and the median item then took a day to reach production. The [case study](docs/multi-agent-program.md) has the numbers, what held and what did not.
 
 ## Install, update, remove
 
@@ -85,7 +93,7 @@ npx skills update orchestrate-task --project -y
 To remove it from both claimed hosts:
 
 ```sh
-npx skills remove capability-contract capability-core-adapters codebase-design depth-lock orchestrate-task verify-delivery writing-for-agents -a codex -a claude-code -y
+npx skills remove audit-agent-program brief-agents capability-contract capability-core-adapters codebase-design depth-lock design-gates orchestrate-task run-agent-trains verify-delivery writing-for-agents -a codex -a claude-code -y
 ```
 
 In a restricted environment, copy a skill directory under [`skills/`](skills) with all its supporting files. Every skill contains its own `LICENSE` and `NOTICE.md`.
@@ -94,4 +102,4 @@ In a restricted environment, copy a skill directory under [`skills/`](skills) wi
 
 Instruction skills do not grant permissions, make a model reliable by themselves or prove that evidence text is true. Project rules, host controls and real test, browser, provider and production systems remain authoritative.
 
-The v0.3.1 release used `finish-task` as its front door. v0.4 replaces that public entrypoint with `orchestrate-task` and adds the runtime/setup package. The immutable [v0.2.0 release](https://github.com/malakhov-dmitrii/agent-process-kit/releases/tag/v0.2.0) remains the migration source. See [compatibility](docs/compatibility.md), [security](SECURITY.md), [third-party notices](THIRD_PARTY.md) and [provenance](docs/provenance.md).
+The v0.3.1 release used `finish-task` as its front door. v0.4 replaces that public entrypoint with `orchestrate-task` and adds the runtime/setup package. v0.5 adds four skills for running many agents in parallel. The immutable [v0.2.0 release](https://github.com/malakhov-dmitrii/agent-process-kit/releases/tag/v0.2.0) remains the migration source. See [compatibility](docs/compatibility.md), [security](SECURITY.md), [third-party notices](THIRD_PARTY.md) and [provenance](docs/provenance.md).

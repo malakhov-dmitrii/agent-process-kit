@@ -8,11 +8,15 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const scratch = mkdtempSync(join(tmpdir(), 'agent-process-kit-install-'));
 const expected = [
+  'audit-agent-program',
+  'brief-agents',
   'capability-contract',
   'capability-core-adapters',
   'codebase-design',
   'depth-lock',
+  'design-gates',
   'orchestrate-task',
+  'run-agent-trains',
   'verify-delivery',
   'writing-for-agents',
 ];

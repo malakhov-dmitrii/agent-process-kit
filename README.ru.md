@@ -5,7 +5,7 @@
 [![CI](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/malakhov-dmitrii/agent-process-kit/actions/workflows/ci.yml)
 [English](README.md) · [Как это работает](docs/how-it-works.md) · [Совместимость](docs/compatibility.md)
 
-Agent Process Kit — это dependency-free Node.js control plane и семь переносимых skills. `orchestrate-task` — входная точка: дайте агенту обычную задачу, а он сам выберет внутренние методы, сохранит состояние и покажет точную границу доказательств.
+Agent Process Kit — это dependency-free Node.js control plane и одиннадцать переносимых skills. `orchestrate-task` — входная точка: дайте агенту обычную задачу, а он сам выберет внутренние методы, сохранит состояние и покажет точную границу доказательств.
 
 ## Установка и настройка
 
@@ -15,7 +15,7 @@ Agent Process Kit — это dependency-free Node.js control plane и семь �
 npx skills add malakhov-dmitrii/agent-process-kit --skill '*' -a codex -a claude-code && npx @malakhov-dmitrii/agent-process-kit setup --apply
 ```
 
-Команда ставит семь skills в `.agents/skills/` и `.claude/skills/`, затем записывает hash-owned runtime adapter и receipt настройки в проект. Проверить или отменить настройку можно так:
+Команда ставит одиннадцать skills в `.agents/skills/` и `.claude/skills/`, затем записывает hash-owned runtime adapter и receipt настройки в проект. Проверить или отменить настройку можно так:
 
 ```sh
 npx @malakhov-dmitrii/agent-process-kit verify-setup
@@ -65,20 +65,28 @@ Status показывает task, goal, phase, completed/total lanes, current/st
 |---|---|---|
 | Начать здесь | [`orchestrate-task`](skills/orchestrate-task/SKILL.md) | Провести обычную задачу через durable control plane |
 | Guardrail | [`depth-lock`](skills/depth-lock/SKILL.md) | Зафиксировать scope, review rounds и checkpoints |
-| Guardrail | [`verify-delivery`](skills/verify-delivery/SKILL.md) | Привязать delivery claims к свежему evidence |
+| Guardrail | [`verify-delivery`](skills/verify-delivery/SKILL.md) | Привязать delivery claims к свежему evidence и receipts на точное дерево |
 | Архитектура | [`codebase-design`](skills/codebase-design/SKILL.md) | Проектировать deep modules, interfaces и seams |
 | Архитектура | [`capability-core-adapters`](skills/capability-core-adapters/SKILL.md) | Держать product behavior за тонкими adapters |
 | Архитектура | [`capability-contract`](skills/capability-contract/SKILL.md) | Определить truth, authority, lifecycle и degraded states |
 | Meta | [`writing-for-agents`](skills/writing-for-agents/SKILL.md) | Писать надёжные skills и agent instructions |
+| Много агентов | [`run-agent-trains`](skills/run-agent-trains/SKILL.md) | Выпускать работу параллельных агентов через trains, одного release captain и heavy-job slots |
+| Много агентов | [`brief-agents`](skills/brief-agents/SKILL.md) | Ставить builders задачи с копированными правилами, coverage inventory и decision log |
+| Много агентов | [`design-gates`](skills/design-gates/SKILL.md) | Держать design rules ratchet-ами и visual gates, сначала показанными красными |
+| Много агентов | [`audit-agent-program`](skills/audit-agent-program/SKILL.md) | Разобрать завершённую программу через линзы throughput, quality и parallelism |
 
 Front door выбирает внутренние методы, когда нужен соответствующий branch. Для узкой задачи любой skill можно установить отдельно.
+
+## Много агентов
+
+Четыре skills «Много агентов» вышли из 114-часовой программы: около 60 builders за три часа собрали 58 задач, а медианная задача дошла до прода за сутки. В [разборе](docs/multi-agent-program.md) (на английском) есть цифры, что сработало и что нет.
 
 ## Обновление и удаление
 
 ```sh
 npx skills update --project -y
 npx skills update orchestrate-task --project -y
-npx skills remove capability-contract capability-core-adapters codebase-design depth-lock orchestrate-task verify-delivery writing-for-agents -a codex -a claude-code -y
+npx skills remove audit-agent-program brief-agents capability-contract capability-core-adapters codebase-design depth-lock design-gates orchestrate-task run-agent-trains verify-delivery writing-for-agents -a codex -a claude-code -y
 ```
 
 В offline-среде можно скопировать каталог skill из [`skills/`](skills) вместе со всеми supporting files. В каждом skill есть собственные `LICENSE` и `NOTICE.md`.

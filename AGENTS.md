@@ -1,6 +1,6 @@
 # Repository agent contract
 
-Read [README.md](README.md) and [docs/how-it-works.md](docs/how-it-works.md) before changing the public workflow. The pack has one front door, `orchestrate-task`, plus six independently installable craft and guardrail skills and a project-local Node.js runtime.
+Read [README.md](README.md) and [docs/how-it-works.md](docs/how-it-works.md) before changing the public workflow. The pack has one front door, `orchestrate-task`, plus ten independently installable craft, guardrail and many-agent skills and a project-local Node.js runtime.
 
 For skill changes:
 

@@ -27,11 +27,15 @@ for (const path of javascript) execFileSync(process.execPath, ['--check', path],
 
 const skillRoot = join(root, 'skills');
 const expectedSkills = [
+  'audit-agent-program',
+  'brief-agents',
   'capability-contract',
   'capability-core-adapters',
   'codebase-design',
   'depth-lock',
+  'design-gates',
   'orchestrate-task',
+  'run-agent-trains',
   'verify-delivery',
   'writing-for-agents',
 ];
@@ -44,6 +48,7 @@ assert.deepEqual(skills, expectedSkills);
 for (const name of skills) {
   const skill = readFileSync(join(skillRoot, name, 'SKILL.md'), 'utf8');
   assert.match(skill, new RegExp(`^---\\nname: ${name}\\ndescription: Use when [^\\n]+\\n`));
+  assert.doesNotMatch(skill.match(/^description: (.+)$/m)[1], /: | #/, `${name} description must stay a valid plain YAML scalar, so no colon-space or hash`);
   assert.ok(existsSync(join(skillRoot, name, 'LICENSE')), `${name} has no distributed LICENSE`);
   assert.ok(existsSync(join(skillRoot, name, 'NOTICE.md')), `${name} has no distributed NOTICE`);
 }
