@@ -1,24 +1,12 @@
-#!/bin/sh
-# Alert once when the orchestrator log has gone quiet while a batch is open.
-#
-# Usage: LOG=orchestrator-log.md OPEN=batch.open MAX_MIN=30 NOTIFY='your-notify-command' sh watchdog.sh
-#
-#   LOG      the file the captain appends to on every step
-#   OPEN     a marker file that exists while a batch is in flight (touch it at batch start)
-#   MAX_MIN  minutes of silence that count as a stall (default 30)
-#   NOTIFY   a command that receives the message as its last argument, for example a chat
-#            or push-notification sender. If unset, the message goes to stdout.
-#
-# Run it every few minutes from cron or launchd. It alerts once per stall and clears
-# itself when the log changes again.
-
 LOG=${LOG:?set LOG to the orchestrator log}
 OPEN=${OPEN:?set OPEN to the batch-in-flight marker}
 MAX_MIN=${MAX_MIN:-30}
-marker="$LOG.stall-alerted"
+marker="$LOG.stall-alerted" # a directory: creating it is the atomic claim to announce this stall
+
+clear_marker() { rmdir "$marker" 2>/dev/null || rm -f "$marker"; }
 
 if [ ! -e "$OPEN" ]; then
-  rm -f "$marker"
+  clear_marker
   exit 0
 fi
 
@@ -30,15 +18,19 @@ elif [ -n "$(find "$LOG" -maxdepth 0 -mmin +"$MAX_MIN" 2>/dev/null)" ]; then
 fi
 
 if [ -z "$stale" ]; then
-  rm -f "$marker"
+  clear_marker
   exit 0
 fi
 
-[ -e "$marker" ] && exit 0
+# Claim the alert before sending it, so two overlapping runs cannot both send. A failed send gives
+# the claim back and the next run tries again.
+mkdir "$marker" 2>/dev/null || exit 0
 message="watchdog: a batch is open and $stale"
 if [ -n "${NOTIFY:-}" ]; then
-  sh -c "$NOTIFY \"\$1\"" watchdog "$message" && : >"$marker"
+  sh -c "$NOTIFY \"\$1\"" watchdog "$message" || {
+    rmdir "$marker"
+    exit 1
+  }
 else
   echo "$message"
-  : >"$marker"
 fi

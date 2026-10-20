@@ -13,7 +13,7 @@ An agent that waits for a slot, a gate, a UAT run or a review should not idle. I
 ```
 
 - The top row has the highest payoff.
-- Every ID is unique. A claim is a directory named after the ID. If two rows share an ID, the first claim blocks the second row forever. The queue in the audited program had a duplicated ID, so one item could never be claimed.
+- Every ID is unique and a plain name of letters, digits, dot, dash and underscore. `claim.sh` refuses anything else, because a claim is a directory named after the ID. If two rows share an ID, the first claim blocks the second row forever. The queue in the audited program had a duplicated ID, so one item could never be claimed.
 - Each item states a size, so an agent can tell whether it fits in the wait.
 
 ## The rules
@@ -34,5 +34,5 @@ The first hours produced five claims. One shipped with the next batch. One close
 
 ## Not exercised yet
 
-- Stale claims. A claim with no status update for several hours blocks its item. The captain can release such a claim with `rmdir` after reading the status file. The program never needed it, so the threshold is a guess.
+- Stale claims. A claim with no status update for several hours blocks its item. The captain can release such a claim with `rm -rf fu-claims/<ID>` after reading the status file. The program never needed it, so the threshold is a guess.
 - Ordering by payoff. Agents took the next free row. A captain could reorder the table between batches.

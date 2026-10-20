@@ -23,7 +23,7 @@ The step is done when a planted literal fails the gate and the message names the
 
 The visual gate runs geometry specs and a style matrix against a fresh server, in two opposite themes. It runs on a runner, in the release class of the slot queue. Details are in [visual gates](references/visual-gates.md).
 
-The step is done when a planted layout violation fails the release gate, prints a screenshot path and writes no receipt.
+The step is done when a planted layout violation fails the release gate, prints a screenshot path and leaves no usable receipt for that tree.
 
 ## 4. Make every new surface join the gates
 
@@ -45,16 +45,16 @@ The step is done when the final report names the screenshot files that were open
 
 ## 7. Tie the receipt to the design verdict
 
-A red visual run writes no receipt, so a deploy script that reuses only matching receipts refuses to ship. A green run writes `design=pass`. A receipt without that flag predates the gate and is not reused. See `verify-delivery` for the receipt script.
+A red visual run invalidates the tree's receipt, so a deploy script that reuses only matching receipts refuses to ship even when an earlier run of the same tree was green. A green run writes `design=pass`. A receipt without that flag predates the gate and is not reused. See `verify-delivery` for the receipt script.
 
 The step is done when a deploy attempt on a tree with a red design run is refused.
 
 ## Failure modes
 
-- Raising a baseline to get green. The script refuses to raise a recorded count. Real exceptions go in the allow list with a reason, and a stale entry fails.
+- Raising a baseline to get green. The script refuses to raise a recorded count, and it compares the baseline file with the committed copy so a hand edit does not slip through. `--allow-raise` exists for a raise on purpose, and a reviewer reads every use of it. Real exceptions go in the allow list with a reason, and a stale entry fails.
 - A blind spot for a teammate's area. The program exempted one area while a teammate owned it. After that feature shipped, the exemption became counted debt that may only fall, and the same rules applied.
 - The dev server instead of the production build. A minifier folded `translate` into `transform`, and a header capsule sat off screen for two days while every dev-server run passed.
-- A headless engine with no blur. Glass was owed on a real device in six release notes and was first checked in a simulator after nearly five days.
+- A headless engine that painted no blur. Ours did, so glass was owed on a real device in six release notes and was first checked in a simulator after nearly five days. Check what yours paints.
 - A subset by design. The release gate ran one pack, two themes and three cells, because the full matrix alone was 151 cells. Checks left out of the gate need an owner and a list, or they rot. Two wide-screen checks were left out because they were out of date.
 - First viewport only. The matrix judged what was visible on load. A 36 px trigger lower on a page passed, and the same trigger above the fold failed. Scroll to the control.
 - Zero matches pass. Make each assertion fail when it matches nothing.

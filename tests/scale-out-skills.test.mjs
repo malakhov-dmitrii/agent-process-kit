@@ -1,39 +1,9 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readdirSync, utimesSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
-
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const skill = (...parts) => join(root, 'skills', ...parts);
-const read = (path) => readFileSync(path, 'utf8');
-const scratch = () => mkdtempSync(join(tmpdir(), 'apk-scale-out-'));
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function run(command, args, options = {}) {
-  return new Promise((resolve) => {
-    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'], ...options });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (chunk) => { stdout += chunk; });
-    child.stderr.on('data', (chunk) => { stderr += chunk; });
-    child.on('close', (status) => resolve({ status, stdout, stderr }));
-  });
-}
-
-function git(cwd, ...args) {
-  return execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8' }).trim();
-}
-
-function gitRepo() {
-  const dir = scratch();
-  git(dir, 'init', '-q');
-  git(dir, 'config', 'user.email', 'test@example.com');
-  git(dir, 'config', 'user.name', 'Test');
-  return dir;
-}
+import { git, gitRepo, read, run, scratch, skill, start, until } from './fixtures/scale-out-helpers.mjs';
 
 const newSkills = ['run-agent-trains', 'brief-agents', 'design-gates', 'audit-agent-program'];
 
@@ -80,36 +50,47 @@ test('heavy-slot never runs more commands than the slots allow and frees every s
   const peaks = read(join(dir, 'peak')).trim().split('\n').map(Number);
   assert.equal(peaks.length, 6, 'every job ran');
   assert.equal(Math.max(...peaks), 2, 'builders may use SLOTS - RESERVED slots, and do use them');
-  assert.equal(spawnSync('ls', [join(dir, 'slots')], { encoding: 'utf8' }).stdout.trim(), '', 'all slots freed');
+  const claims = readdirSync(join(dir, 'slots'));
+  assert.equal(claims.length, 6, 'one claim per job, none reused');
+  assert.ok(claims.every((name) => existsSync(join(dir, 'slots', name, 'released'))), 'and every claim is released');
 });
 
 test('heavy-slot keeps one slot for the release class and passes the exit code through', async () => {
   const dir = scratch();
   const env = { ...process.env, SLOT_DIR: join(dir, 'slots'), SLOTS: '2', RESERVED: '1', POLL: '0.1' };
   const script = skill('run-agent-trains', 'scripts', 'heavy-slot.sh');
-  const holder = run('sh', [script, '--', 'sh', '-c', `sleep 1.5; touch "${dir}/builder-done"`], { env });
-  await sleep(300);
-  const waiting = run('sh', [script, '--', 'sh', '-c', `touch "${dir}/second-builder-done"`], { env });
-  await sleep(200);
-  const release = await run('sh', [script, '-r', '--', 'sh', '-c', `touch "${dir}/release-done"; exit 7`], { env });
-  assert.equal(release.status, 7, 'the command exit code is the wrapper exit code');
-  assert.ok(existsSync(join(dir, 'release-done')), 'the release class ran in the reserved slot');
-  assert.equal(existsSync(join(dir, 'builder-done')), false, 'while the first builder still held its slot');
-  assert.equal(existsSync(join(dir, 'second-builder-done')), false, 'and the second builder was still waiting');
-  await Promise.all([holder, waiting]);
-  assert.ok(existsSync(join(dir, 'second-builder-done')));
+  const mark = (name) => join(dir, name);
+  // Explicit handshakes: the holder says when it holds its slot and waits to be told to finish,
+  // and the second builder says when it is queued. No step depends on how long anything takes.
+  const holder = start('sh', [script, '--', 'sh', '-c', `touch "${mark('held')}"; while [ ! -e "${mark('go')}" ]; do sleep 0.05; done; touch "${mark('builder-done')}"`], { env });
+  await until(() => existsSync(mark('held')), 'the first builder to hold its slot');
+  const waiting = start('sh', [script, '--', 'sh', '-c', `touch "${mark('second-builder-done')}"`], { env });
+  await until(() => /waiting for a builder slot/.test(waiting.output().stderr), 'the second builder to queue');
+  const release = await run('sh', [script, '-r', '--', 'sh', '-c', `touch "${mark('release-done')}"; exit 7`], { env });
+  try {
+    assert.equal(release.status, 7, 'the command exit code is the wrapper exit code');
+    assert.ok(existsSync(mark('release-done')), 'the release class ran in the reserved slot');
+    assert.equal(existsSync(mark('builder-done')), false, 'while the first builder still held its slot');
+    assert.equal(existsSync(mark('second-builder-done')), false, 'and the second builder was still waiting');
+  } finally {
+    writeFileSync(mark('go'), '');
+  }
+  await Promise.all([holder.done, waiting.done]);
+  assert.ok(existsSync(mark('second-builder-done')));
 });
 
-test('heavy-slot reclaims a slot whose owner is gone', async () => {
+test('heavy-slot claims over a slot whose owner is gone', async () => {
   const dir = scratch();
   const dead = spawnSync(process.execPath, ['-e', ''], { encoding: 'utf8' });
-  const slot = join(dir, 'slots', 'slot-1');
+  const slot = join(dir, 'slots', 'slot-1.1');
   mkdirSync(slot, { recursive: true });
   writeFileSync(join(slot, 'pid'), `${dead.pid}\n`);
+  writeFileSync(join(slot, 'pgid'), `${dead.pid}\n`); // its command published a group, and the group is gone too
   const env = { ...process.env, SLOT_DIR: join(dir, 'slots'), SLOTS: '2', RESERVED: '1', POLL: '0.1' };
   const result = await run('sh', [skill('run-agent-trains', 'scripts', 'heavy-slot.sh'), '--', 'true'], { env });
   assert.equal(result.status, 0);
   assert.doesNotMatch(result.stderr, /waiting/);
+  assert.ok(existsSync(join(dir, 'slots', 'slot-1.2')), 'the new claim has the next number');
 });
 
 test('claim.sh lets exactly one of several racing agents own an item', async () => {

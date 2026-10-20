@@ -1,6 +1,6 @@
 # Compatibility
 
-Agent Process Kit v0.4 has two layers:
+Agent Process Kit v0.5 has two layers:
 
 - eleven portable Agent Skills installed into host project directories;
 - a dependency-free Node.js 22 runtime and CLI installed from the package.

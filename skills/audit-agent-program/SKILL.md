@@ -33,11 +33,11 @@ Remove time that two lenses counted. Treat agent-hour spans as upper bounds, bec
 
 The step is done when the program-wide total names which rows overlap, and each contradiction has a decision.
 
-## 5. Rank the recommendations and build the first ones
+## 5. Rank the recommendations
 
-Each recommendation is a rule, a tool or a gate. It says where it lives: a line in the project instructions, a skill, a script or a note. Rank by payoff. Build the top few, and for each one show it working or failing on purpose.
+Each recommendation is a rule, a tool or a gate. It says where it would live: a line in the project instructions, a skill, a script or a note. Rank by payoff. For each of the top few, write the check that would show it working or failing on purpose. Do not apply any of them. Implementing a recommendation is a separate task, and the operator approves it after reading the report.
 
-The step is done when the top recommendations exist as files in the right places and each has been exercised.
+The step is done when the top recommendations are written as proposed changes, each with its target file and its check, and none has been applied.
 
 ## 6. Report to the operator in one page
 
@@ -54,4 +54,4 @@ The step is done when the page names the next three changes and who makes them.
 - Trusting the ledger. The status ledger lagged the repository. Read git for what is merged, and use the ledger for intent.
 - Taking agent claims at face value. 23 of 47 DELIVERED finals said the core proof had not run. Check the claim against the log.
 - No timestamps. The audit was possible because the captain wrote a timestamped line at every step. Without that log, the throughput lens has nothing to measure.
-- A report that ends the work. A ranked list nobody builds is shelfware. Build the top items in the same session.
+- A report that ends the work. A ranked list nobody owns is shelfware. Give each of the next three changes an owner and a first step, and hand them to the operator as separate tasks to approve. The audit itself changes nothing.

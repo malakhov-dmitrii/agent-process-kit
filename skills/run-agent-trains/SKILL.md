@@ -27,7 +27,7 @@ The step is done when every brief points at the same shared file and every build
 
 ## 2. Hand work off through the ready queue
 
-A builder appends one line to `ready.md` when its branch is pushed. The format is in [queue formats](references/queue-formats.md). The builder works on its own branch, uses a WIP commit instead of `git stash` (all worktrees of a repository share one stash), and frees its resources when it pushes. Its final report says LOCAL-ONLY or NOT-VERIFIED until the proof ran in the real environment.
+A builder appends one line to `ready.md` when its branch is pushed. The format is in [queue formats](references/queue-formats.md). The builder works on its own branch, uses a WIP commit instead of `git stash` (all worktrees of a repository share one stash), and frees its resources when it pushes. Its final report says LOCAL-ONLY or NOT-VERIFIED until the proof the card needs has run in the environment it must reach.
 
 Do not ban builders from rendering or browser checks. The ban moved the visual proof to integration, where the first run of one train had 45 of 76 browser tests red. Let builders run their own heavy checks through the slot queue at the lowest priority.
 

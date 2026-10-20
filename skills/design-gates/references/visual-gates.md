@@ -56,7 +56,7 @@ new-feature-geometry.spec.ts renders "settings/payouts-v2": add a screen to MATR
 ## Limits to state in every report
 
 - The matrix judges what is in the first viewport. A control below the fold is not measured. Put the check in a geometry spec that scrolls to it, or open the screen scrolled.
-- A headless engine on a server paints no backdrop blur. Treat glass and blur as unverified until a simulator or a real device has looked at them. Treat server-side engine runs as geometry only.
+- In our environment the headless engine on the test runner painted no backdrop blur. Where yours does the same, treat glass and blur as unverified until a simulator, a real device or an engine that paints them has looked, and treat those runs as geometry only. Check what your own engine paints before you rely on either way.
 - Run on the production build. A dev server skips the minifier and serves about 1,500 unbundled modules, which also made one engine time out on cold pages.
 - Use the owner's environment. The owner's browser, a shorter window and a wider screen found defects that the default matrix did not.
 
@@ -66,4 +66,4 @@ A check on empty data passes for the wrong reason. The shared fixture workspace 
 
 ## Receipts
 
-A red run prints `DESIGN GATE: FAILED`, one block per failure, copies the screenshots to a folder that survives the run, writes no receipt and so blocks the deploy script. A green run's receipt says `design=pass`. A gate run on a laptop cannot run the visual part. It needs an explicit skip flag, and the release note records the skip.
+A red run prints `DESIGN GATE: FAILED`, one block per failure, copies the screenshots to a folder that survives the run and calls `receipt_invalidate` for the tree. An earlier green receipt for the same tree stops counting, so the deploy script refuses. Calling it at the start of every run covers a gate that crashes too. A green run's receipt says `design=pass`. In our environment a gate run on a laptop could not run the visual part, because the browsers and fixtures lived on the runner. If yours cannot either, it needs an explicit skip flag, and the release note records the skip.

@@ -56,7 +56,19 @@ Write a line at every step, including waits. A stall watchdog reads the age of t
 
 Copy this into the batch's first log line and tick it as you go.
 
-1. Take the release lock: `until mkdir release.lock 2>/dev/null; do sleep 20; done`. Create `batch.open`. Only one batch is open at a time.
+1. Take the release lock, then create `batch.open`. Only one batch is open at a time. The lock is one absolute path that every worktree and every agent on the machine shares, and the wait for it is bounded:
+
+   ```sh
+   LOCK=/var/tmp/release.lock   # the same absolute path in every brief, outside every worktree
+   deadline=$(( $(date +%s) + 3600 ))
+   until mkdir "$LOCK" 2>/dev/null; do
+     [ "$(date +%s)" -ge "$deadline" ] && { echo "release lock held for an hour: $(cat "$LOCK/owner" 2>/dev/null)" >&2; exit 75; }
+     sleep 20
+   done
+   echo "$AGENT $(date '+%F %H:%M %Z')" >"$LOCK/owner"
+   ```
+
+   A relative path would give every worktree its own lock. A lock whose owner is gone blocks every later batch, so it has a recovery. The lock is stale only when all three hold: the owner named in `$LOCK/owner` has no live session, `batch.open` is missing or untouched past the stall threshold, and the last orchestrator-log line is older than `MAX_MIN`. The captain then removes it with `rm -rf "$LOCK"` and logs the removal and the reason on its own line. A lock whose owner's log is still moving is never removed.
 2. Take the oldest unshipped train from `trains.md`. Count the cards and estimate the time. Above about six cards or sixty minutes, split the train and ship part of it.
 3. Merge the latest main into the train. Log the main sha.
 4. Run the full gate once, in the release class of the slot queue. A green run writes a receipt keyed to the exact tree.
@@ -65,7 +77,7 @@ Copy this into the batch's first log line and tick it as you go.
 7. Push main. If main moved, merge again and check whether the receipt key still matches. Deploy using the receipt.
 8. Read the deployed revision from the environment. A script that exited 1 on a timer does not prove the deploy failed. Read the platform's deployment state and wait while a build is in progress.
 9. Run a read-only production check of the core flows. It never sends, saves, deletes or pays.
-10. Write the release note, append the final log line, remove `batch.open` and release the lock with `rmdir release.lock`.
+10. Write the release note, append the final log line, remove `batch.open` and release the lock with `rm -rf "$LOCK"`.
 11. Answer status questions from the log, as a clock time for the next release only.
 
 ## A status page from the logs

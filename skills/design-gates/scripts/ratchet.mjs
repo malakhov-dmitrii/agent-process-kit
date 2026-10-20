@@ -21,7 +21,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { join, sep } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 
 const args = process.argv.slice(2);
 const option = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
@@ -39,6 +39,7 @@ const extensions = config.extensions ?? ['.ts', '.tsx', '.css'];
 const exclude = config.exclude ?? [];
 const baselinePath = config.baseline ?? 'ratchet-baseline.json';
 const allow = config.allow ?? [];
+const allowRaise = args.includes('--allow-raise');
 
 if (allow.some((entry) => !entry.file || !entry.key || !entry.reason)) {
   fail('ratchet: every allow entry needs file, key and reason');
@@ -74,16 +75,60 @@ function scan(text, file) {
   return hits;
 }
 
+for (const root of roots) {
+  if (!existsSync(root)) fail(`ratchet: root not found: ${root}`);
+}
+
+const inScope = (file) =>
+  roots.some((root) => {
+    const prefix = root.replace(/^\.\//, '').replace(/\/+$/, '');
+    return file === prefix || file.startsWith(`${prefix}/`);
+  }) &&
+  extensions.some((extension) => file.endsWith(extension)) &&
+  !exclude.some((part) => file.includes(part));
+
 const files = roots
-  .filter(existsSync)
   .flatMap(listFiles)
   .filter((file) => !exclude.some((part) => file.includes(part)));
+if (files.length === 0) fail(`ratchet: no ${extensions.join(', ')} files under ${roots.join(', ')}, so nothing was checked`);
 const allHits = files.flatMap((file) => scan(readFileSync(file, 'utf8'), file));
 const counted = allHits.filter((hit) => !allow.some((entry) => entry.file === hit.file && entry.key === hit.key));
 const totals = Object.fromEntries(rules.map((rule) => [rule.key, counted.filter((hit) => hit.key === rule.key).length]));
 const recorded = existsSync(baselinePath) ? JSON.parse(readFileSync(baselinePath, 'utf8')) : {};
+const diffBase = option('--diff');
 
-function evaluate(baseline) {
+// The baseline file is edited by hand and by --write, so it cannot vouch for itself. The copy at
+// the reference revision (--diff <rev>, or HEAD) is the trusted one: a count may sit below it and
+// never above it unless --allow-raise says the raise is deliberate.
+function trustedBaseline() {
+  const reference = diffBase ?? 'HEAD';
+  const path = relative(process.cwd(), resolve(baselinePath)).split(sep).join('/');
+  try {
+    return JSON.parse(execFileSync('git', ['show', `${reference}:./${path}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }));
+  } catch {
+    return null;
+  }
+}
+const trusted = trustedBaseline();
+
+function resolveBaseline(file) {
+  const baseline = {};
+  const raised = [];
+  for (const rule of rules.filter((item) => item.mode === 'count')) {
+    const mine = file[rule.key];
+    const theirs = trusted?.[rule.key];
+    if (theirs === undefined) baseline[rule.key] = mine;
+    else if (mine === undefined) baseline[rule.key] = theirs;
+    else if (mine > theirs) {
+      raised.push({ key: rule.key, from: theirs, to: mine });
+      baseline[rule.key] = allowRaise ? mine : theirs;
+    } else baseline[rule.key] = mine;
+  }
+  return { baseline, raised };
+}
+
+function evaluate(file) {
+  const { baseline, raised } = resolveBaseline(file);
   const violations = [];
   for (const entry of allow) {
     if (!allHits.some((hit) => hit.file === entry.file && hit.key === entry.key)) {
@@ -92,54 +137,85 @@ function evaluate(baseline) {
   }
   for (const rule of rules) {
     const fix = rule.fix ?? '';
+    const bump = allowRaise ? undefined : raised.find((item) => item.key === rule.key);
     if (rule.mode === 'zero') {
       for (const hit of counted.filter((item) => item.key === rule.key)) {
         violations.push(`[${rule.key}] ${hit.file}:${hit.line} must stay at zero. ${fix}`.trim());
       }
+    } else if (bump) {
+      violations.push(`[${rule.key}] baseline raised from ${bump.from} to ${bump.to} against ${diffBase ?? 'HEAD'}. Lower the count instead, or pass --allow-raise to raise it on purpose.`);
     } else if (totals[rule.key] > (baseline[rule.key] ?? 0)) {
       violations.push(`[${rule.key}] grew from ${baseline[rule.key] ?? 0} to ${totals[rule.key]}. ${fix}`.trim());
     }
   }
-  const base = option('--diff');
-  if (base) {
-    const changed = execFileSync('git', ['diff', '--name-only', '--diff-filter=AM', base, '--'], { encoding: 'utf8' })
-      .split('\n')
-      .filter((file) => files.includes(file));
-    for (const file of changed) {
-      let before = '';
+  if (diffBase) violations.push(...diffViolations(diffBase));
+  return violations;
+}
+
+function diffViolations(base) {
+  let raw;
+  try {
+    raw = execFileSync('git', ['diff', '--name-status', '-z', '--relative', '-M', '-C', '--diff-filter=AMRC', base, '--'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (error) {
+    fail(`ratchet: cannot diff against ${base}: ${String(error.stderr ?? error.message).trim()}`);
+  }
+  const fields = raw.split('\0');
+  const changed = [];
+  for (let index = 0; index < fields.length && fields[index]; ) {
+    const status = fields[index];
+    if (status.startsWith('R') || status.startsWith('C')) {
+      changed.push({ status: status[0], from: fields[index + 1], file: fields[index + 2] });
+      index += 3;
+    } else {
+      changed.push({ status: status[0], from: fields[index + 1], file: fields[index + 1] });
+      index += 2;
+    }
+  }
+  const violations = [];
+  for (const { status, from, file } of changed.filter((entry) => files.includes(entry.file))) {
+    // What the file held before: a copy and a file new to the scan start empty, a rename or an
+    // edit starts from the old path's content.
+    let before = '';
+    if (status !== 'A' && status !== 'C' && inScope(from)) {
       try {
-        before = execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+        before = execFileSync('git', ['show', `${base}:./${from}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
       } catch {
         before = '';
       }
-      const was = scan(before, file);
-      for (const rule of rules.filter((item) => item.mode === 'count')) {
-        const added =
-          counted.filter((hit) => hit.file === file && hit.key === rule.key).length -
-          was.filter((hit) => hit.key === rule.key).length;
-        if (added > 0) violations.push(`[${rule.key}] ${file} adds ${added} new hit(s) against ${base}. ${rule.fix ?? ''}`.trim());
-      }
+    }
+    const was = scan(before, file);
+    for (const rule of rules.filter((item) => item.mode === 'count')) {
+      const added =
+        counted.filter((hit) => hit.file === file && hit.key === rule.key).length -
+        was.filter((hit) => hit.key === rule.key).length;
+      if (added > 0) violations.push(`[${rule.key}] ${file} adds ${added} new hit(s) against ${base}. ${rule.fix ?? ''}`.trim());
     }
   }
   return violations;
 }
 
-let baseline = recorded;
+let current = recorded;
 if (args.includes('--write')) {
   const next = { ...recorded };
-  const raised = [];
+  const refused = [];
+  const { baseline: floor } = resolveBaseline(recorded);
   for (const rule of rules.filter((item) => item.mode === 'count')) {
-    const was = recorded[rule.key];
-    if (was !== undefined && totals[rule.key] > was) raised.push(`${rule.key}: ${was} -> ${totals[rule.key]}`);
+    const was = floor[rule.key];
+    if (!allowRaise && was !== undefined && totals[rule.key] > was) refused.push(`${rule.key}: ${was} -> ${totals[rule.key]}`);
     else next[rule.key] = totals[rule.key];
   }
-  if (raised.length > 0) fail(`ratchet: refusing to raise the baseline (${raised.join(', ')}). Remove the new hits.`, 1);
+  if (refused.length > 0) {
+    fail(`ratchet: refusing to raise the baseline (${refused.join(', ')}). Remove the new hits, or pass --allow-raise to raise it on purpose.`, 1);
+  }
   writeFileSync(baselinePath, `${JSON.stringify(next, null, 2)}\n`);
   console.log(`ratchet: baseline written to ${baselinePath}`);
-  baseline = next;
+  current = next;
 }
 
-const violations = evaluate(baseline);
+const violations = evaluate(current);
 if (violations.length > 0) {
   console.error('RATCHET FAILED');
   for (const violation of violations) console.error(`  ${violation}`);

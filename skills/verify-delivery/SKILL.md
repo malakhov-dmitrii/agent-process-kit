@@ -27,6 +27,6 @@ Match every delivery claim to current evidence from the system that owns it.
 
    Completion: the user can see what the proof does and does not establish.
 
-5. **Report once.** Start with exactly one receipt: `DELIVERED:`, `LOCAL-ONLY:`, `NOT-VERIFIED:`, or `BLOCKED:`. State the proof, remaining work, next owner and required user action. A `DELIVERED:` report that contains a "not run" line is `LOCAL-ONLY:` or `NOT-VERIFIED:`. Builders report `LOCAL-ONLY:` until the production proof exists.
+5. **Report once.** Start with exactly one receipt: `DELIVERED:`, `LOCAL-ONLY:`, `NOT-VERIFIED:`, or `BLOCKED:`. State the proof, remaining work, next owner and required user action. `DELIVERED:` names the requested boundary and proves it. A "not run" line for proof inside that boundary makes the report `LOCAL-ONLY:` or `NOT-VERIFIED:`. A stage beyond the boundary is listed as not requested and does not downgrade it. Production proof is required only when the requested boundary includes production: then a builder or integrator reports `LOCAL-ONLY:` until it exists.
 
 Never reuse an old success after a relevant edit. A missing or failed check cannot become a passing claim.

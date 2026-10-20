@@ -44,8 +44,8 @@ The name, the place and the replacement are in the first two lines. An agent tha
 - Zero matches. Delete the element the assertion targets and run it. The assertion must fail.
 - Pre-fix commit. Run the gate against the commit before a known defect was fixed. It must be red.
 - Allow list. Add an entry for a file that has no hit. The gate must call it stale.
-- Baseline. Raise a recorded count by hand and run the tool's write mode. It must refuse.
-- Receipt. Make the visual run fail, then try the deploy script. It must refuse.
+- Baseline. Raise a recorded count by hand and run the tool in plain and in write mode. Both must refuse unless `--allow-raise` is passed.
+- Receipt. Write a green receipt, make the visual run fail so it invalidates the receipt, then try the deploy script. It must refuse, with the earlier green receipt still on disk.
 
 ## Failure modes
 

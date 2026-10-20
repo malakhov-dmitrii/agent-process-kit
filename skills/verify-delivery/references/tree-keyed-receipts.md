@@ -4,12 +4,14 @@ A gate receipt says that the full gate passed on exactly this code. It is worth 
 
 ## The rules
 
-1. The key is a hash of the git tree ids of every path that the shipped artifact or the gate reads: source, scripts, the build file, the files the docs tests read. List the paths conservatively. A path you forget makes the receipt vouch for code it never tested.
-2. Only the gate script writes a receipt. It writes after a green run, for the commit it tested, and only when the key equals that commit's key.
+1. The key is a hash of what `git ls-tree` reports for every path that the shipped artifact or the gate reads: source, scripts, the build file, the files the docs tests read. Each entry carries the mode, the type and the object id, so a chmod or a change of file type gives a new key, and so does a change of content. List the paths conservatively. A path you forget makes the receipt vouch for code it never tested.
+   The list must not be empty. Its paths are relative to the repository root, spelled plainly (no `..`, no `.` segment, no `//`), without globs or spaces, and at least one of them must exist at the revision. Otherwise `receipt_key` prints nothing and fails, because a key over no paths would match every commit.
+2. Only the gate script writes a receipt. It writes after a green run, for the commit it tested, only on a clean checkout, and only when the key equals the key of that commit and of the checked-out HEAD.
 3. Receipts live in the shared git directory, so every worktree of the repository sees them.
-4. The deploy script reuses a receipt only when three things hold: the keyed paths are clean in the working tree, a receipt exists for the key of `HEAD`, and it carries every flag the deploy requires, such as `gate=pass design=pass`. Otherwise the deploy runs the gate again or stops.
+4. The deploy script reuses a receipt only when four things hold: the keyed paths are clean in the working tree (checked from the repository root, whatever the current directory is), a receipt exists for the key of `HEAD`, no later red run has invalidated it, and it carries every flag the deploy requires, such as `gate=pass design=pass`. Otherwise the deploy runs the gate again or stops.
 5. A change outside the keyed paths leaves the key alone. A docs-only commit keeps its receipt. A change under a keyed path gives a new key, and the old receipt stops matching.
 6. Skipping the gate is explicit. A tests-only or docs-only delta after a green gate may ship with a skip variable, and the release note records the reason.
+7. A red run takes the old pass away. The gate calls `receipt_invalidate` for the key before it runs and stops when that call fails, because a receipt that cannot be invalidated could still be reused after a red run. The call leaves a numbered start record for the run. A receipt is usable only while no start record has a higher number than the run that passed, so a red or crashed rerun leaves no earlier green receipt usable, and so does a red run that overlaps with a passing one and started after it. The new receipt is written only after a green run, and `receipt_write` refuses while another run of the same tree is still alive, because that run may yet turn out red. Call `receipt_invalidate` and `receipt_write` from one script, since the run number lives in the shell between them.
 
 ## The script
 
@@ -19,14 +21,17 @@ A gate receipt says that the full gate passed on exactly this code. It is worth 
 RECEIPT_PATHS="src scripts Dockerfile"
 . ./gate-receipt.sh
 
-# gate script, after a green run on $commit
-receipt_write "$(receipt_key "$commit")" "$commit" gate=pass design=pass
+# gate script, on a clean checkout of $commit
+key=$(receipt_key "$commit") || exit 1
+receipt_invalidate "$key" || exit 1  # an earlier pass for this tree stops counting now; if this fails, do not run the gate
+run_the_gate || exit 1               # red: the invalidation stands
+receipt_write "$key" "$commit" gate=pass design=pass
 
 # deploy script, before shipping HEAD
 receipt_reuse gate=pass design=pass || { echo "no matching receipt, run the gate"; exit 1; }
 ```
 
-`receipt_write` refuses a key that is not the key of the commit. `receipt_reuse` prints the receipt line and refuses a dirty tree, a missing receipt or a missing flag.
+`receipt_write` refuses an empty key, a dirty tree, and a key that is not the key of both the commit and the checked-out HEAD. `receipt_reuse` prints the receipt line and refuses a dirty tree, a missing receipt, an invalidated receipt or a missing flag. A key is a hex object id and nothing else, so it can never name a path outside the receipt directory.
 
 The runtime's candidate fingerprint gives task evidence the same property. This script applies the rule to a project's own gate and deploy scripts.
 
@@ -44,8 +49,8 @@ With a reused receipt, deploys took 2 to 14 minutes in the audited program, 2 mi
 
 Use one leading receipt: DELIVERED, LOCAL-ONLY, NOT-VERIFIED, PARKED or BLOCKED.
 
-- DELIVERED needs evidence from the system that owns the claim. A "not run" line next to it turns it into LOCAL-ONLY or NOT-VERIFIED.
-- Builders and integrators report LOCAL-ONLY until the production proof exists.
+- DELIVERED needs evidence from the system that owns the claim. A "not run" line for proof inside the requested boundary turns it into LOCAL-ONLY or NOT-VERIFIED. A stage outside the boundary is listed as not requested.
+- When the requested boundary includes production, builders and integrators report LOCAL-ONLY until the production proof exists.
 - Across 199 final notifications in the audited program, 47 began with DELIVERED, 9 with LOCAL-ONLY, 4 with NOT-VERIFIED, 4 with PARKED and 1 with BLOCKED. 124 had no receipt and 10 were empty. Of the 47 DELIVERED finals, 23 admitted that the core proof had not run.
 
 ## A stop-hook receipt gate

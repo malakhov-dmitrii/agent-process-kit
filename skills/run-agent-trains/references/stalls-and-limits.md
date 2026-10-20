@@ -23,7 +23,7 @@ Recommended after the audit, not yet run in the program.
 */5 * * * * LOG=$HOME/scratch/orchestrator-log.md OPEN=$HOME/scratch/batch.open MAX_MIN=30 NOTIFY='send-chat-message' sh /path/to/watchdog.sh
 ```
 
-`NOTIFY` receives the message as its last argument. The alert repeats only after the log has moved and gone quiet again. Add a second check of the same shape for the test runner: probe it, and alert after two failed probes in a row.
+`NOTIFY` receives the message as its last argument. The alert repeats only after the log has moved and gone quiet again. The script claims the alert with `mkdir` before it sends, so two overlapping runs send one alert. A failed send gives the claim back and the next run tries again. If a run is killed between the claim and the send, that stall is never announced, so keep the check's own exit status in view. Add a second check of the same shape for the test runner: probe it, and alert after two failed probes in a row.
 
 Recommended after the audit. The script is tested here with a planted quiet log and has not run in a real program yet.
 
