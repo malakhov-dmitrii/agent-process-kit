@@ -1,0 +1,33 @@
+{
+  "roots": ["src"],
+  "extensions": [".ts", ".tsx", ".css"],
+  "exclude": ["src/components/ui/", ".test.", ".spec."],
+  "baseline": "ratchet-baseline.json",
+  "rules": [
+    {
+      "key": "colour-hex",
+      "mode": "zero",
+      "pattern": "#[0-9a-fA-F]{3,8}\\b",
+      "fix": "Use a colour role token from the design doc, never a hex literal."
+    },
+    {
+      "key": "radius-literal",
+      "mode": "zero",
+      "pattern": "\\brounded-(?:sm|md|lg|xl|2xl|\\[[^\\]]+\\])",
+      "fix": "Use a radius role: capsule for controls, section for cards."
+    },
+    {
+      "key": "overlay-library-import",
+      "mode": "zero",
+      "pattern": "from ['\"](?:sonner|@radix-ui/react-(?:dialog|popover|dropdown-menu))['\"]",
+      "fix": "Import the project primitive. Feature code never imports an overlay library."
+    },
+    {
+      "key": "px-font-size",
+      "mode": "count",
+      "pattern": "text-\\[\\d+px\\]",
+      "fix": "Use a type role. Existing debt may only go down."
+    }
+  ],
+  "allow": []
+}

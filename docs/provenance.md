@@ -6,9 +6,10 @@ Agent Process Kit came from a production-heavy local workflow, then went through
 - v0.2 separated a zero-install contract from an optional runtime;
 - v0.3.0 introduced the portable `finish-task` workflow;
 - v0.3.1 restored the independently installable craft pack around that front door;
+- v0.5 adds `run-agent-trains`, `brief-agents`, `design-gates` and `audit-agent-program`, distilled from a 114-hour multi-agent program, and extends `verify-delivery` with tree-keyed receipts;
 - v0.4 replaces manual skill invocation with the `orchestrate-task` front door and a dependency-free control plane for durable state, bounded review, UAT and delivery proof.
 
-`orchestrate-task` and `verify-delivery` are project-authored. The craft skills and referenced concepts use the MIT-licensed sources listed in [THIRD_PARTY.md](../THIRD_PARTY.md). The competitive brief records product patterns used to challenge the redesign; competitor implementation and branding are not copied.
+`orchestrate-task`, `verify-delivery` and the four v0.5 many-agent skills are project-authored. The craft skills and referenced concepts use the MIT-licensed sources listed in [THIRD_PARTY.md](../THIRD_PARTY.md). The competitive brief records product patterns used to challenge the redesign; competitor implementation and branding are not copied.
 
 Private sessions, journals, credentials, endpoints, machine profiles and private Git history are excluded. The immutable v0.2 release remains the migration source; v0.4 imports only validated task metadata through an offline, receipt-backed cutover.
 

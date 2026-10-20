@@ -1,6 +1,6 @@
 # Contributing
 
-Agent Process Kit is a seven-skill pack with one front door, `orchestrate-task`, plus a dependency-free runtime. A contribution should keep the pack coherent, the front door obvious and every standalone skill independently installable.
+Agent Process Kit is an eleven-skill pack with one front door, `orchestrate-task`, plus a dependency-free runtime. A contribution should keep the pack coherent, the front door obvious and every standalone skill independently installable.
 
 ## Content rules
 

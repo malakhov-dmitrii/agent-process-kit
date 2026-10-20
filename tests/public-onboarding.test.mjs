@@ -17,7 +17,7 @@ test('English and Russian onboarding expose the same install and removal command
     assert.match(body, /orchestrate-task/);
     assert.doesNotMatch(body, /There is no framework|нет runtime|no runtime dependency/i);
   }
-  const remove = 'npx skills remove capability-contract capability-core-adapters codebase-design depth-lock orchestrate-task verify-delivery writing-for-agents -a codex -a claude-code -y';
+  const remove = 'npx skills remove audit-agent-program brief-agents capability-contract capability-core-adapters codebase-design depth-lock design-gates orchestrate-task run-agent-trains verify-delivery writing-for-agents -a codex -a claude-code -y';
   assert.ok(english.includes(remove));
   assert.ok(russian.includes(remove));
 });

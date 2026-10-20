@@ -15,6 +15,8 @@ Match every delivery claim to current evidence from the system that owns it.
 
 2. **Run the proof now.** Execute the relevant check after the final change. Read the result. For UI, API, CLI or integration behavior, exercise the real path available in scope.
 
+   When a gate script writes a receipt, key it to the exact tree and let the deploy reuse only a matching one. See [tree-keyed receipts](references/tree-keyed-receipts.md).
+
    Completion: the proof refers to the current tree, commit, artifact or environment.
 
 3. **Grade the stage.** Use [delivery stages](references/delivery-stages.md). Local verification, commit, push, deploy and production behavior require different receipts. Do not infer a later stage from an earlier one.
@@ -25,6 +27,6 @@ Match every delivery claim to current evidence from the system that owns it.
 
    Completion: the user can see what the proof does and does not establish.
 
-5. **Report once.** Start with exactly one receipt: `DELIVERED:`, `LOCAL-ONLY:`, `NOT-VERIFIED:`, or `BLOCKED:`. State the proof, remaining work, next owner and required user action.
+5. **Report once.** Start with exactly one receipt: `DELIVERED:`, `LOCAL-ONLY:`, `NOT-VERIFIED:`, or `BLOCKED:`. State the proof, remaining work, next owner and required user action. `DELIVERED:` names the requested boundary and proves it. A "not run" line for proof inside that boundary makes the report `LOCAL-ONLY:` or `NOT-VERIFIED:`. A stage beyond the boundary is listed as not requested and does not downgrade it. Production proof is required only when the requested boundary includes production: then a builder or integrator reports `LOCAL-ONLY:` until it exists.
 
 Never reuse an old success after a relevant edit. A missing or failed check cannot become a passing claim.

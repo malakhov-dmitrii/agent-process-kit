@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const read = (path) => readFileSync(join(root, path), 'utf8');
 const install = "npx skills add malakhov-dmitrii/agent-process-kit --skill '*' -a codex -a claude-code && npx @malakhov-dmitrii/agent-process-kit setup --apply";
-const pack = ['capability-contract', 'capability-core-adapters', 'codebase-design', 'depth-lock', 'orchestrate-task', 'verify-delivery', 'writing-for-agents'];
+const pack = ['audit-agent-program', 'brief-agents', 'capability-contract', 'capability-core-adapters', 'codebase-design', 'depth-lock', 'design-gates', 'orchestrate-task', 'run-agent-trains', 'verify-delivery', 'writing-for-agents'];
 const packInstall = "npx skills add malakhov-dmitrii/agent-process-kit --skill '*' -a codex -a claude-code";
 const packRemove = `npx skills remove ${pack.join(' ')} -a codex -a claude-code -y`;
 const singleUpdate = 'npx skills update orchestrate-task --project -y';
