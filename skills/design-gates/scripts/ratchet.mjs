@@ -191,10 +191,11 @@ function diffViolations(base) {
   for (const file of untracked) changed.push({ status: 'A', from: file, file });
   const violations = [];
   for (const { status, from, file } of changed.filter((entry) => files.includes(entry.file))) {
-    // What the file held before: a copy and a file new to the scan start empty, a rename or an
-    // edit starts from the old path's content.
+    // What the file held before: a copy, a type change and a file new to the scan start empty, so
+    // they get no credit for hits the old file held. A rename or an edit starts from the old path's
+    // content.
     let before = '';
-    if (status !== 'A' && status !== 'C' && inScope(from)) {
+    if (status !== 'A' && status !== 'C' && status !== 'T' && inScope(from)) {
       try {
         before = execFileSync('git', ['show', `${base}:./${from}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
       } catch {

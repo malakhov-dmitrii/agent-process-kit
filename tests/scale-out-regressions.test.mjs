@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readdirSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readdirSync, rmSync, symlinkSync, unlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { alive, git, gitRepo, read, root, run, scratch, skill, start, until } from './fixtures/scale-out-helpers.mjs';
@@ -316,7 +316,8 @@ function overlap({ bStaysAlive }) {
   const dir = receiptRepo();
   const key = receipt(dir, 'receipt_key HEAD').stdout.trim();
   assert.equal(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0, 'an earlier green run');
-  const mark = (name) => join(dir, name);
+  const marks = scratch(); // outside the repository, whose cleanliness is checked as a whole
+  const mark = (name) => join(marks, name);
   const wait = (name) => `while [ ! -e "${mark(name)}" ]; do sleep 0.05; done`;
   const sh = (body) => start('sh', ['-c', `RECEIPT_PATHS="src scripts Dockerfile"; . "${receiptLib}"; ${body}`], { cwd: dir });
   const a = sh(`receipt_invalidate ${key} || exit 9; touch "${mark('a-started')}"; ${wait('b-started')}; ${bStaysAlive ? 'sleep 0.3' : wait('b-done')}; receipt_write ${key} "$(git rev-parse HEAD)" gate=pass; echo "write=$?"`);
@@ -353,23 +354,114 @@ test('pathspec magic cannot be smuggled in behind a leading ./', () => {
   assert.equal(key, receipt(dir, 'receipt_key HEAD', { paths: 'src' }).stdout.trim(), 'a plain ./ and a trailing slash still normalise to the same key');
 });
 
-test('a path through a submodule or a symlink is refused, since the key cannot see into it', () => {
+test('a symlink above or at a keyed path is refused, in the commit and in the working tree', () => {
   const dir = receiptRepo();
-  git(dir, 'update-index', '--add', '--cacheinfo', `160000,${git(dir, 'rev-parse', 'HEAD')},module`);
-  mkdirSync(join(dir, 'module', 'src'), { recursive: true });
   symlinkSync('src', join(dir, 'link'));
   git(dir, 'add', 'link');
-  git(dir, 'commit', '-qm', 'add a submodule entry and a symlink');
+  git(dir, 'commit', '-qm', 'add a symlink to a directory');
   for (const [paths, label] of [
-    ['src module/src', 'a file under a submodule'],
     ['src link/a.txt', 'a file under a symlink to a directory'],
+    ['src link', 'the symlink itself'],
   ]) {
     const result = receipt(dir, 'receipt_key HEAD', { paths });
     assert.notEqual(result.status, 0, label);
     assert.equal(result.stdout.trim(), '', `${label}: no key`);
-    assert.match(result.stderr, /submodule or symlink/);
+    assert.match(result.stderr, /symlink/);
   }
-  assert.equal(receipt(dir, 'receipt_key HEAD', { paths: 'src module link' }).status, 0, 'listing the submodule and the symlink themselves is fine');
+  assert.equal(receipt(dir, 'receipt_key HEAD', { paths: 'src' }).status, 0, 'a key that stays clear of the symlink is fine');
+  // the commit may differ from the working tree: the commit's own symlink ancestors are refused too
+  const first = git(dir, 'rev-parse', 'HEAD');
+  git(dir, 'rm', '-q', '--cached', 'link');
+  unlinkSync(join(dir, 'link'));
+  mkdirSync(join(dir, 'link'));
+  writeFileSync(join(dir, 'link', 'a.txt'), 'plain\n');
+  const result = receipt(dir, `receipt_key ${first}`, { paths: 'src link/a.txt' });
+  assert.notEqual(result.status, 0, 'a symlink ancestor in the commit being keyed');
+  assert.match(result.stderr, /symlink/);
+});
+
+test('a repository with a submodule is refused outright, whatever git says about the child', () => {
+  const dir = receiptRepo();
+  const child = gitRepo();
+  writeFileSync(join(child, 'lib.js'), 'one\n');
+  git(child, 'add', '.');
+  git(child, 'commit', '-qm', 'child');
+  git(dir, '-c', 'protocol.file.allow=always', 'submodule', 'add', '-q', child, 'module');
+  git(dir, 'commit', '-qm', 'add a submodule');
+  for (const [paths, label] of [
+    ['src module', 'a key that lists the submodule'],
+    ['src', 'a key that does not'],
+  ]) {
+    for (const body of ['receipt_key HEAD', 'receipt_clean', 'receipt_reuse gate=pass', 'receipt_write abc "$(git rev-parse HEAD)" gate=pass']) {
+      const result = receipt(dir, body, { paths });
+      assert.notEqual(result.status, 0, `${label}: ${body}`);
+      assert.match(result.stderr, /submodule/, `${label}: ${body}`);
+    }
+  }
+  const gitlinkOnly = receiptRepo();
+  git(gitlinkOnly, 'update-index', '--add', '--cacheinfo', `160000,${git(gitlinkOnly, 'rev-parse', 'HEAD')},module`);
+  git(gitlinkOnly, 'commit', '-qm', 'a gitlink without a .gitmodules file');
+  assert.notEqual(receipt(gitlinkOnly, 'receipt_key HEAD').status, 0, 'a gitlink alone is enough');
+  const markerOnly = receiptRepo();
+  writeFileSync(join(markerOnly, '.gitmodules'), '');
+  assert.notEqual(receipt(markerOnly, 'receipt_key HEAD').status, 0, 'so is a .gitmodules file alone');
+});
+
+test('a symlink that appears in the working tree above a keyed path is refused, although git calls the tree clean', () => {
+  const dir = receiptRepo();
+  const paths = 'src optional/code.txt';
+  const key = receipt(dir, 'receipt_key HEAD', { paths }).stdout.trim();
+  assert.notEqual(key, '', 'a path that is absent at the commit still gives a key');
+  assert.equal(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`, { paths }).status, 0);
+  assert.equal(receipt(dir, 'receipt_reuse gate=pass', { paths }).status, 0);
+  const elsewhere = scratch();
+  writeFileSync(join(elsewhere, 'code.txt'), 'different code\n');
+  symlinkSync(elsewhere, join(dir, 'optional'));
+  const result = receipt(dir, 'receipt_reuse gate=pass', { paths });
+  assert.notEqual(result.status, 0, 'the receipt is not reused for code read through the new symlink');
+  assert.match(result.stderr, /symlink/);
+  assert.notEqual(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`, { paths }).status, 0, 'and no receipt is written for it');
+});
+
+test('core.symlinks=false is refused, since a symlink replaced by a file holding its link text reads as clean', () => {
+  const dir = receiptRepo();
+  symlinkSync('a.txt', join(dir, 'src', 'ln'));
+  git(dir, 'add', '.');
+  git(dir, 'commit', '-qm', 'add a symlink under src');
+  const key = receipt(dir, 'receipt_key HEAD').stdout.trim();
+  assert.equal(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0);
+  assert.equal(receipt(dir, 'receipt_reuse gate=pass').status, 0);
+  git(dir, 'config', 'core.symlinks', 'false');
+  rmSync(join(dir, 'src', 'ln'));
+  writeFileSync(join(dir, 'src', 'ln'), 'a.txt');
+  assert.equal(git(dir, 'status', '--porcelain'), '', 'git itself reports nothing for the replaced symlink');
+  const result = receipt(dir, 'receipt_reuse gate=pass');
+  assert.notEqual(result.status, 0, 'the receipt is not reused');
+  assert.match(result.stderr, /core\.symlinks/);
+  assert.notEqual(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0, 'and none is written');
+});
+
+test('cleanliness covers the whole repository, and an assume-unchanged or skip-worktree entry anywhere is refused', () => {
+  const dir = receiptRepo();
+  const key = receipt(dir, 'receipt_key HEAD').stdout.trim();
+  assert.equal(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0);
+  assert.equal(receipt(dir, 'receipt_reuse gate=pass').status, 0, 'clean to begin with');
+  writeFileSync(join(dir, 'notes.md'), 'untracked, and outside the keyed paths\n');
+  assert.notEqual(receipt(dir, 'receipt_reuse gate=pass').status, 0, 'an untracked file outside the keyed paths');
+  assert.notEqual(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0);
+  rmSync(join(dir, 'notes.md'));
+  writeFileSync(join(dir, 'docs', 'd.md'), 'edited\n');
+  assert.notEqual(receipt(dir, 'receipt_reuse gate=pass').status, 0, 'a tracked file outside the keyed paths');
+  git(dir, 'checkout', '--', 'docs/d.md');
+  assert.equal(receipt(dir, 'receipt_reuse gate=pass').status, 0, 'clean again');
+  for (const flag of ['assume-unchanged', 'skip-worktree']) {
+    git(dir, 'update-index', `--${flag}`, 'docs/d.md');
+    const result = receipt(dir, 'receipt_reuse gate=pass');
+    assert.notEqual(result.status, 0, `${flag} outside the keyed paths`);
+    assert.match(result.stderr, /assume-unchanged or skip-worktree/);
+    git(dir, 'update-index', `--no-${flag}`, 'docs/d.md');
+  }
+  assert.equal(receipt(dir, 'receipt_reuse gate=pass').status, 0, 'and clean once the flags are gone');
 });
 
 test('a tree that git cannot report on, or that hides changes, is never called clean', () => {
@@ -524,6 +616,22 @@ test('ratchet --diff counts untracked files and type changes as new', () => {
   result = ratchet('--diff', 'HEAD');
   assert.equal(result.status, 1);
   assert.match(result.stderr, /src\/features\/link\.tsx adds 1 new hit/);
+});
+
+test('ratchet --diff gives a type change no credit for the hits the old file held', () => {
+  const { dir, ratchet } = ratchetRepo();
+  writeFileSync(join(dir, 'doc.txt'), '<p className="text-[15px]">d</p>\n');
+  writeFileSync(join(dir, 'src', 'features', 'b.tsx'), '<p className="text-[15px]">b</p>\n');
+  assert.equal(ratchet('--write').status, 0);
+  git(dir, 'add', '.');
+  git(dir, 'commit', '-qm', 'base');
+  // b.tsx becomes a symlink to a file that holds the same single hit, so the total does not move
+  rmSync(join(dir, 'src', 'features', 'b.tsx'));
+  symlinkSync('../../doc.txt', join(dir, 'src', 'features', 'b.tsx'));
+  assert.equal(ratchet().status, 0, 'the total is unchanged');
+  const result = ratchet('--diff', 'HEAD');
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /src\/features\/b\.tsx adds 1 new hit/);
 });
 
 test('a scan that finds no files is an error and never reads as clean', () => {

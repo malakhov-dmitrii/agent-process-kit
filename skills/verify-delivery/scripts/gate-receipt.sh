@@ -4,6 +4,11 @@
 # globs, no spaces in a name. Every function works from the repository root, whatever the
 # current directory is.
 #
+# Supported: plain repositories without submodules, with core.fileMode and core.symlinks left at
+# true, no assume-unchanged or skip-worktree entry, and no symlink at or above a keyed path. Anything
+# unusual is refused with a message rather than guessed at, because each of those makes git report a
+# change differently, or not at all, and a receipt must never vouch for code it did not see.
+#
 # A gate run is receipt_invalidate ... receipt_write in one script. receipt_invalidate leaves a
 # numbered start record for the run, and a receipt stays usable only while no start record has a
 # higher number than the run that passed. A red or crashed run therefore blocks reuse, even when
@@ -43,10 +48,68 @@ _receipt_paths() {
   done
 }
 
+# Refuse a repository or a working tree that this library cannot judge. The checks are about the
+# whole repository, not only the keyed paths, because git's own view of "clean" is what the receipt
+# relies on and each of these settings or entries makes that view unreliable.
+_receipt_supported() {
+  _top=$(_receipt_top) || return 1
+  _staged=$(git -C "$_top" ls-files --stage) || {
+    echo "receipt: git ls-files failed, so the repository cannot be judged" >&2
+    return 1
+  }
+  if [ -e "$_top/.gitmodules" ] || printf '%s\n' "$_staged" | grep -q '^160000 '; then
+    echo "receipt: this repository has a submodule, and receipts do not support submodules: git does not reliably report a change inside one. Supported: plain repositories without submodules" >&2
+    return 1
+  fi
+  for _setting in core.fileMode core.symlinks; do
+    if [ "$(git -C "$_top" config --bool "$_setting" 2>/dev/null)" = false ]; then
+      echo "receipt: $_setting is false, so a change of file mode or of symlink type would not show as a change; set it to true" >&2
+      return 1
+    fi
+  done
+  _flags=$(git -C "$_top" ls-files -v) || {
+    echo "receipt: git ls-files failed, so the repository cannot be judged" >&2
+    return 1
+  }
+  if [ -n "$(printf '%s\n' "$_flags" | grep -v '^H ' | grep -v '^$')" ]; then
+    echo "receipt: the repository holds files marked assume-unchanged or skip-worktree, whose changes git does not report" >&2
+    return 1
+  fi
+  # A symlink in the working tree at or above a keyed path lets other code be read at that path
+  # without a change in the commit. It is looked for on disk, not in the commit, so one that
+  # appears after the receipt was written is caught too.
+  _qpaths=$(_receipt_paths) || return 1
+  while IFS= read -r _q; do
+    [ "$_q" = . ] && continue
+    _qrest=$_q
+    _qprefix=""
+    while :; do
+      case $_qrest in
+        */*)
+          _qprefix="${_qprefix:+$_qprefix/}${_qrest%%/*}"
+          _qrest=${_qrest#*/}
+          ;;
+        *)
+          _qprefix="${_qprefix:+$_qprefix/}$_qrest"
+          _qrest=""
+          ;;
+      esac
+      if [ -L "$_top/$_qprefix" ]; then
+        echo "receipt: $_qprefix is a symlink, at or above the keyed path $_q, so the key cannot say what is read through it; key the real paths instead" >&2
+        return 1
+      fi
+      [ -n "$_qrest" ] || break
+    done
+  done <<EOF
+$_qpaths
+EOF
+}
+
 receipt_key() { # receipt_key [rev]  ->  prints the key; on any problem prints nothing and fails
   _rev=${1:-HEAD}
   _top=$(_receipt_top) || return 1
   _paths=$(_receipt_paths) || return 1
+  _receipt_supported || return 1
   _commit=$(git -C "$_top" rev-parse --verify -q "$_rev^{commit}") || {
     echo "receipt: not a commit: $_rev" >&2
     return 1
@@ -118,34 +181,19 @@ receipt_file() { # receipt_file <key>
   printf '%s/gate-receipts/%s' "$_common" "$1"
 }
 
-receipt_clean() { # true when nothing under RECEIPT_PATHS differs from HEAD, untracked files included
+receipt_clean() { # true when the whole repository matches HEAD, untracked files included
+  _receipt_supported || return 1
   _top=$(_receipt_top) || return 1
-  _paths=$(_receipt_paths) || return 1
-  # Settings that make git stop reporting changes cannot be told apart from a clean tree.
-  if [ "$(git -C "$_top" config --bool core.fileMode 2>/dev/null)" = false ]; then
-    echo "receipt: core.fileMode is false, so a file mode change would not show as a change; set it to true" >&2
+  # The whole repository, not only the keyed paths: a path-limited status is what lets a new
+  # untracked directory or symlink above a keyed path go unseen.
+  _changes=$(git -C "$_top" status --porcelain=v1 --untracked-files=all --ignore-submodules=none) || {
+    echo "receipt: git status failed, so the tree cannot be called clean" >&2
+    return 1
+  }
+  if [ -n "$_changes" ]; then
+    echo "receipt: uncommitted changes in the repository" >&2
     return 1
   fi
-  while IFS= read -r _p; do
-    _changes=$(git --literal-pathspecs -C "$_top" status --porcelain --untracked-files=all -- "$_p") || {
-      echo "receipt: git status failed for $_p, so the tree cannot be called clean" >&2
-      return 1
-    }
-    if [ -n "$_changes" ]; then
-      echo "receipt: uncommitted changes under $_p" >&2
-      return 1
-    fi
-    _listed=$(git --literal-pathspecs -C "$_top" ls-files -v -- "$_p") || {
-      echo "receipt: git ls-files failed for $_p, so the tree cannot be called clean" >&2
-      return 1
-    }
-    if [ -n "$(printf '%s\n' "$_listed" | grep -v '^H ' | grep -v '^$')" ]; then
-      echo "receipt: $_p holds files marked assume-unchanged or skip-worktree, whose changes git does not report" >&2
-      return 1
-    fi
-  done <<EOF
-$_paths
-EOF
 }
 
 _receipt_store() { # _receipt_store <key> <line>
