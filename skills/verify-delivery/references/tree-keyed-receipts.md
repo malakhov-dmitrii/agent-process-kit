@@ -4,7 +4,7 @@ A gate receipt says that the full gate passed on exactly this code. It is worth 
 
 ## The rules
 
-Supported: plain repositories without submodules. Anything unusual is refused rather than guessed. The library refuses a repository with a submodule or a `.gitmodules` file, `core.fileMode=false`, `core.symlinks=false`, `core.trustctime=false`, `core.checkStat=minimal`, any configured `filter.*` (the filters that Git LFS installs included) or a filter attribute on a keyed path, any assume-unchanged or skip-worktree entry anywhere, and a symlink at, above or below a keyed path. Each of these makes git report a change differently or not at all, and a receipt must never vouch for code it did not see.
+Supported: plain repositories without submodules. Anything unusual is refused rather than guessed. The library refuses a repository with a submodule or a `.gitmodules` file, `core.fileMode=false`, `core.symlinks=false`, `core.trustctime=false`, `core.checkStat=minimal`, a `filter` attribute on a tracked file under a keyed path (a filter that is only configured applies to no keyed file and is not refused), any assume-unchanged or skip-worktree entry anywhere, and a symlink at, above or below a keyed path. Each of these makes git report a change differently or not at all, and a receipt must never vouch for code it did not see.
 
 Threat model: receipts protect against accidents, such as a stale or dirty tree and an honest agent's mistake. They do not protect against someone who reconfigures git on purpose or edits the receipt files. Anything unusual that git can be told to do is refused, and the rest is trust on this machine.
 

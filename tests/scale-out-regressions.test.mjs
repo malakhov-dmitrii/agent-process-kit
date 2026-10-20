@@ -520,7 +520,7 @@ test('a tracked symlink under a keyed path is refused, since what it points to i
   assert.equal(receipt(clean, `receipt_key ${first}`, { paths: 'src' }).status, 0, 'a commit without one is fine');
 });
 
-test('a configured filter, or a filter attribute on a keyed path, is refused, since the working file is not what git compares', () => {
+test('a filter attribute on a keyed path is refused, since the working file is not what git compares, and a filter that is only configured is not', () => {
   const dir = receiptRepo();
   writeFileSync(join(dir, 'src', 'a.txt'), 'one\n');
   writeFileSync(join(dir, '.gitattributes'), 'src/a.txt filter=mask\n');
@@ -542,6 +542,14 @@ test('a configured filter, or a filter attribute on a keyed path, is refused, si
   const result = receipt(attr, 'receipt_key HEAD');
   assert.notEqual(result.status, 0, 'a filter attribute on a keyed path');
   assert.match(result.stderr, /filter/);
+  // a filter that is configured and applied to no keyed path is fine, so an installed Git LFS does not refuse every repository
+  const configured = receiptRepo();
+  git(configured, 'config', 'filter.lfs.clean', 'cat');
+  git(configured, 'config', 'filter.lfs.smudge', 'cat');
+  const configuredKey = receipt(configured, 'receipt_key HEAD').stdout.trim();
+  assert.notEqual(configuredKey, '', 'a configured filter alone still gives a key');
+  assert.equal(receipt(configured, `receipt_write ${configuredKey} "$(git rev-parse HEAD)" gate=pass`).status, 0);
+  assert.equal(receipt(configured, 'receipt_reuse gate=pass').status, 0);
   // an attribute elsewhere in the repository does not matter
   const elsewhere = receiptRepo();
   writeFileSync(join(elsewhere, '.gitattributes'), 'docs/d.md filter=ghost\n');

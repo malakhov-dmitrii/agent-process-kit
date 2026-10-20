@@ -5,8 +5,8 @@
 # current directory is.
 #
 # Supported: plain repositories without submodules, with core.fileMode, core.symlinks and
-# core.trustctime left at true and core.checkStat at its default, no filter configured or set by an
-# attribute on a keyed path, no assume-unchanged or skip-worktree entry, and no symlink at, above or
+# core.trustctime left at true and core.checkStat at its default, no filter attribute on a tracked
+# file under a keyed path, no assume-unchanged or skip-worktree entry, and no symlink at, above or
 # below a keyed path. Anything unusual is refused with a message rather than guessed at, because each
 # of those makes git report a change differently, or not at all, and a receipt must never vouch for
 # code it did not see.
@@ -76,12 +76,6 @@ _receipt_supported() {
   done
   if [ "$(git -C "$_top" config --get core.checkStat 2>/dev/null)" = minimal ]; then
     echo "receipt: core.checkStat is minimal, so a same-size edit with its modification time restored would not show as a change; leave it at the default" >&2
-    return 1
-  fi
-  # A filter makes git compare something other than the file on disk, so a changed file can read
-  # as clean. This includes the filters that Git LFS installs.
-  if [ -n "$(git -C "$_top" config --get-regexp '^filter\.' 2>/dev/null)" ]; then
-    echo "receipt: a git filter is configured (filter.*), and a clean filter makes git compare something other than the file on disk" >&2
     return 1
   fi
   _flags=$(git -C "$_top" ls-files -v) || {
