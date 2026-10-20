@@ -26,7 +26,7 @@ SLOT_DIR=/var/tmp/slots SLOTS=3 RESERVED=1 sh scripts/heavy-slot.sh -r -- npm ru
 - The release captain calls it with `-r` and may use all of them. One slot stays free for the release class, so a queue of builders cannot starve the gate.
 - A caller that finds no free slot prints one waiting line and polls. Waiting is the intended outcome, not an error.
 - The wrapper starts the command as the leader of its own process group and gives it no standard input. It uses job control where the shell has it, and `setsid` or `perl` where the shell cannot (a dash without a terminal, which is what `/bin/sh` is on Debian and Ubuntu). INT, TERM and HUP reach the whole group, with KILL after `GRACE` seconds (default 10), and the wrapper exits with 128 plus the signal number. When the command ends on its own, whatever it left running in the group is stopped the same way, with a warning, so do not wrap a launcher that is meant to leave a server running. The slot is freed only after the group is empty.
-- A claim on slot N is the directory `slot-N.G`, and G only grows. Creating `slot-N.<latest + 1>` is the one atomic step that makes a job the owner. A job never deletes a claim, not even its own: it marks it `released`, and a later claim of that slot sweeps only claims that are stale and at least `RETAIN` minutes old (default 60). A listing of a directory cannot prove ownership, so the scheme avoids needing one: a number is reused only by a job that sat for more than `RETAIN` minutes between reading a slot and creating its claim, and that is the one assumption it makes. A job writes only inside its own claim.
+- A claim on slot N is the directory `slot-N.G`, and G only grows. Creating `slot-N.<latest + 1>` is the one atomic step that makes a job the owner. A job never deletes a claim, not even its own: it marks it `released`, and a later claim of that slot sweeps only claims that are stale and at least `RETAIN` minutes old (default 60). A job writes only inside its own claim. This keeps the common races out, but `heavy-slot.sh` is a best-effort helper for one host and not a lock service: the pauses listed under "Limits" below can admit one extra job.
 - A claim is stale, and may be claimed over, when it is released, or when its wrapper is gone and nothing of its command's group is left. A wrapper killed with SIGKILL therefore keeps its slot until its command finishes, because that command still uses the memory the slot stands for. The command writes its own group id into the claim from inside the group, before it runs, and is not run at all if that write fails. A dead wrapper with no group on record might have died while its command was starting, so its claim keeps the slot for `START_WAIT` minutes (default 3) and is stale after that.
 - A process that starts its own session leaves the group and is not tracked. Run such tools in the foreground. If a machine has none of job control, `setsid` and `perl`, the script says so and can stop only the command itself.
 - One `SLOT_DIR` per machine. Slots do not coordinate across machines.
@@ -34,6 +34,16 @@ SLOT_DIR=/var/tmp/slots SLOTS=3 RESERVED=1 sh scripts/heavy-slot.sh -r -- npm ru
 On Linux you can use `flock` instead of directories: open `slot-N.lock` on a file descriptor and take `flock -n` on each N in turn. The behavior is the same, and the kernel releases the lock when the process dies.
 
 To skip a heavy command that already passed on the same tree, key a pass record by the tree id, the command and the runtime version, and write it only after a green run on a clean tree. That is the receipt idea from `verify-delivery`, applied per command.
+
+## Limits
+
+Each of these can admit one extra job, or delay one, and none is guarded against:
+
+- A job that is paused for more than a minute after it created its claim and before it wrote its pid. The claim then looks abandoned and the next job takes the slot, so two commands run for one slot.
+- A job that is paused for more than `RETAIN` minutes between reading a slot and creating its claim. A claim number that was swept can come back to it.
+- A wrapper pid that the system reuses makes a dead claim look alive. That only delays other jobs.
+- A command that starts its own session, which leaves the process group that the wrapper stops.
+- Slots do not coordinate across machines or across users. Give one machine one budget.
 
 ## What happened without it
 

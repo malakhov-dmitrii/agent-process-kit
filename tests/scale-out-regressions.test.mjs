@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readdirSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { alive, git, gitRepo, read, root, run, scratch, skill, start, until } from './fixtures/scale-out-helpers.mjs';
@@ -106,6 +106,17 @@ test('heavy-slot treats a dead wrapper whose command may still be starting as a 
   utimesSync(claim, old, old);
   assert.equal((await second.done).status, 0, 'once the claim is old the command cannot be starting any more');
   assert.ok(existsSync(join(dir, 'second-ran')));
+});
+
+test('heavy-slot documented limit: a claim with no owner on record is held for a minute and then taken over', async () => {
+  const dir = scratch();
+  const claim = plantClaim(dir, 'slot-1.1', {});
+  const second = start('sh', [heavySlot, '--', 'sh', '-c', `touch "${dir}/second-ran"`], { env: slotEnv(dir) });
+  await until(() => second.output().stderr.includes('waiting') || existsSync(join(dir, 'second-ran')), 'the second job to wait or run');
+  assert.equal(existsSync(join(dir, 'second-ran')), false, 'a fresh claim that has not recorded its owner yet keeps the slot');
+  const old = new Date(Date.now() - 10 * 60 * 1000);
+  utimesSync(claim, old, old);
+  assert.equal((await second.done).status, 0, 'an old one is taken over, which is the pause the header of the script lists');
 });
 
 test('heavy-slot keeps a slot whose wrapper is gone while the group on record is alive', async () => {
@@ -342,6 +353,54 @@ test('pathspec magic cannot be smuggled in behind a leading ./', () => {
   assert.equal(key, receipt(dir, 'receipt_key HEAD', { paths: 'src' }).stdout.trim(), 'a plain ./ and a trailing slash still normalise to the same key');
 });
 
+test('a path through a submodule or a symlink is refused, since the key cannot see into it', () => {
+  const dir = receiptRepo();
+  git(dir, 'update-index', '--add', '--cacheinfo', `160000,${git(dir, 'rev-parse', 'HEAD')},module`);
+  mkdirSync(join(dir, 'module', 'src'), { recursive: true });
+  symlinkSync('src', join(dir, 'link'));
+  git(dir, 'add', 'link');
+  git(dir, 'commit', '-qm', 'add a submodule entry and a symlink');
+  for (const [paths, label] of [
+    ['src module/src', 'a file under a submodule'],
+    ['src link/a.txt', 'a file under a symlink to a directory'],
+  ]) {
+    const result = receipt(dir, 'receipt_key HEAD', { paths });
+    assert.notEqual(result.status, 0, label);
+    assert.equal(result.stdout.trim(), '', `${label}: no key`);
+    assert.match(result.stderr, /submodule or symlink/);
+  }
+  assert.equal(receipt(dir, 'receipt_key HEAD', { paths: 'src module link' }).status, 0, 'listing the submodule and the symlink themselves is fine');
+});
+
+test('a tree that git cannot report on, or that hides changes, is never called clean', () => {
+  const dir = receiptRepo();
+  const key = receipt(dir, 'receipt_key HEAD').stdout.trim();
+  assert.equal(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0);
+  assert.equal(receipt(dir, 'receipt_reuse gate=pass').status, 0, 'clean to begin with');
+
+  git(dir, 'update-index', '--assume-unchanged', 'src/a.txt');
+  writeFileSync(join(dir, 'src', 'a.txt'), 'changed behind git\n');
+  let result = receipt(dir, 'receipt_reuse gate=pass');
+  assert.notEqual(result.status, 0, 'an assume-unchanged file with changed content');
+  assert.match(result.stderr, /assume-unchanged or skip-worktree/);
+  assert.notEqual(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0, 'and no receipt is written for it');
+  git(dir, 'update-index', '--no-assume-unchanged', 'src/a.txt');
+  git(dir, 'checkout', '--', 'src/a.txt');
+
+  git(dir, 'config', 'core.fileMode', 'false');
+  result = receipt(dir, 'receipt_reuse gate=pass');
+  assert.notEqual(result.status, 0, 'core.fileMode=false hides mode changes');
+  assert.match(result.stderr, /core\.fileMode/);
+  git(dir, 'config', 'core.fileMode', 'true');
+  assert.equal(receipt(dir, 'receipt_reuse gate=pass').status, 0, 'and it is clean again once the setting is back');
+
+  writeFileSync(join(dir, 'src', 'a.txt'), 'changed\n');
+  writeFileSync(join(dir, '.git', 'index'), '');
+  result = receipt(dir, 'receipt_reuse gate=pass');
+  assert.notEqual(result.status, 0, 'a failing git status must not read as clean');
+  assert.notEqual(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0);
+});
+
 test('a receipt key that is not a hex object id never becomes a path', () => {
   const dir = receiptRepo();
   const key = receipt(dir, 'receipt_key HEAD').stdout.trim();
@@ -420,6 +479,51 @@ test('ratchet --diff against an unknown revision is an error, not a crash or a p
   const result = ratchet('--diff', 'no-such-revision');
   assert.equal(result.status, 2);
   assert.match(result.stderr, /no-such-revision/);
+});
+
+test('a recorded count that is not a plain non-negative integer is an error, never a pass', () => {
+  const { dir, ratchet } = ratchetRepo();
+  const baseline = join(dir, 'ratchet-baseline.json');
+  writeFileSync(join(dir, 'src', 'features', 'a.tsx'), '<p className="text-[13px] text-[14px]">a</p>\n');
+  assert.equal(ratchet('--write').status, 0);
+  git(dir, 'add', '.');
+  git(dir, 'commit', '-qm', 'base');
+  writeFileSync(join(dir, 'src', 'features', 'a.tsx'), '<p className="text-[13px] text-[14px] text-[15px]">a</p>\n');
+  for (const value of ['not-a-number', -1, 1.5, null, [], {}, true]) {
+    writeFileSync(baseline, JSON.stringify({ 'px-font-size': value }));
+    const result = ratchet();
+    assert.equal(result.status, 2, `baseline ${JSON.stringify(value)}`);
+    assert.match(result.stderr, /must be a non-negative integer/);
+    assert.doesNotMatch(result.stdout, /clean/);
+  }
+});
+
+test('ratchet --diff counts untracked files and type changes as new', () => {
+  const { dir, ratchet } = ratchetRepo();
+  const filler = Array.from({ length: 20 }, (_, index) => `const filler${index} = ${index};`).join('\n');
+  writeFileSync(join(dir, 'src', 'features', 'a.tsx'), `${filler}\n<p className="text-[13px] text-[14px]">a</p>\n`);
+  writeFileSync(join(dir, 'doc.txt'), 'plain text\n');
+  symlinkSync('../../doc.txt', join(dir, 'src', 'features', 'link.tsx'));
+  assert.equal(ratchet('--write').status, 0);
+  git(dir, 'add', '.');
+  git(dir, 'commit', '-qm', 'base');
+
+  // one hit moves out of a.tsx into a file that git does not track yet
+  writeFileSync(join(dir, 'src', 'features', 'a.tsx'), `${filler}\n<p className="text-[13px]">a</p>\n`);
+  writeFileSync(join(dir, 'src', 'features', 'new.tsx'), '<p className="text-[14px]">n</p>\n');
+  assert.equal(ratchet().status, 0, 'the total is unchanged');
+  let result = ratchet('--diff', 'HEAD');
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /src\/features\/new\.tsx adds 1 new hit/);
+  rmSync(join(dir, 'src', 'features', 'new.tsx'));
+
+  // one hit moves out of a.tsx into a symlink that becomes a regular file
+  rmSync(join(dir, 'src', 'features', 'link.tsx'));
+  writeFileSync(join(dir, 'src', 'features', 'link.tsx'), '<p className="text-[14px]">l</p>\n');
+  assert.equal(ratchet().status, 0, 'the total is unchanged again');
+  result = ratchet('--diff', 'HEAD');
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /src\/features\/link\.tsx adds 1 new hit/);
 });
 
 test('a scan that finds no files is an error and never reads as clean', () => {
@@ -546,6 +650,9 @@ test('the docs state the corrected contracts', () => {
   assert.doesNotMatch(verify, /Builders report `LOCAL-ONLY:` until the production proof exists\./);
 
   assert.match(read(skill('verify-delivery', 'references', 'tree-keyed-receipts.md')), /receipt_invalidate "\$key" \|\| exit 1/, 'the documented gate stops when invalidation fails');
+  assert.match(read(skill('run-agent-trains', 'scripts', 'heavy-slot.sh')), /best-effort limit.*ONE host/s, 'the slot script states what it is');
+  assert.match(read(skill('run-agent-trains', 'references', 'heavy-slots.md')), /## Limits[\s\S]*paused for more than a minute/, 'and lists the pause that can admit an extra job');
+  assert.match(read(skill('run-agent-trains', 'scripts', 'watchdog.sh')), /second alert for the same stall/, 'the watchdog states its overlap limit');
   assert.match(read(skill('design-gates', 'references', 'visual-gates.md')), /in our environment/i);
   assert.match(read(join(root, 'docs', 'compatibility.md')), /^Agent Process Kit v0\.5 /m);
 });

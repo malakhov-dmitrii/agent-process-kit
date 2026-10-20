@@ -111,6 +111,16 @@ function trustedBaseline() {
 }
 const trusted = trustedBaseline();
 
+// A count that is not a plain non-negative integer would turn every comparison below into a pass.
+for (const [label, source] of [['baseline', recorded], ['committed baseline', trusted ?? {}]]) {
+  for (const rule of rules.filter((item) => item.mode === 'count')) {
+    const value = source[rule.key];
+    if (value !== undefined && !(Number.isInteger(value) && value >= 0)) {
+      fail(`ratchet: the ${label} count for ${rule.key} must be a non-negative integer, found ${JSON.stringify(value)}`);
+    }
+  }
+}
+
 function resolveBaseline(file) {
   const baseline = {};
   const raised = [];
@@ -155,7 +165,7 @@ function evaluate(file) {
 function diffViolations(base) {
   let raw;
   try {
-    raw = execFileSync('git', ['diff', '--name-status', '-z', '--relative', '-M', '-C', '--diff-filter=AMRC', base, '--'], {
+    raw = execFileSync('git', ['diff', '--name-status', '-z', '--relative', '-M', '-C', '--diff-filter=AMRCT', base, '--'], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -174,6 +184,11 @@ function diffViolations(base) {
       index += 2;
     }
   }
+  // Files that git does not track yet are new to the scan, so every hit in them is a new hit.
+  const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard', '-z'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    .split('\0')
+    .filter(Boolean);
+  for (const file of untracked) changed.push({ status: 'A', from: file, file });
   const violations = [];
   for (const { status, from, file } of changed.filter((entry) => files.includes(entry.file))) {
     // What the file held before: a copy and a file new to the scan start empty, a rename or an

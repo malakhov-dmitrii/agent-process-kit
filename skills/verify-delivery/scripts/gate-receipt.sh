@@ -69,7 +69,31 @@ receipt_key() { # receipt_key [rev]  ->  prints the key; on any problem prints n
           ;;
       esac
     fi
-    if [ -n "$_entry" ]; then _found=1; else _entry=absent; fi
+    if [ -n "$_entry" ]; then
+      _found=1
+    else
+      # An absent path is fine, unless a parent of it is a submodule or a symlink: git does not
+      # look through those, and the key would then miss everything that is read through them.
+      _rest=$_p
+      _prefix=""
+      while :; do
+        case $_rest in
+          */*)
+            _prefix="${_prefix:+$_prefix/}${_rest%%/*}"
+            _rest=${_rest#*/}
+            ;;
+          *) break ;;
+        esac
+        _mode=$(git --literal-pathspecs -C "$_top" ls-tree "$_commit" -- "$_prefix" | cut -f 1)
+        case $_mode in
+          160000* | 120000*)
+            echo "receipt: $_p goes through $_prefix, a submodule or symlink that the key cannot see into; list $_prefix itself" >&2
+            return 1
+            ;;
+        esac
+      done
+      _entry=absent
+    fi
     _parts="$_parts$_entry $_p
 "
   done <<EOF
@@ -97,9 +121,26 @@ receipt_file() { # receipt_file <key>
 receipt_clean() { # true when nothing under RECEIPT_PATHS differs from HEAD, untracked files included
   _top=$(_receipt_top) || return 1
   _paths=$(_receipt_paths) || return 1
+  # Settings that make git stop reporting changes cannot be told apart from a clean tree.
+  if [ "$(git -C "$_top" config --bool core.fileMode 2>/dev/null)" = false ]; then
+    echo "receipt: core.fileMode is false, so a file mode change would not show as a change; set it to true" >&2
+    return 1
+  fi
   while IFS= read -r _p; do
-    if [ -n "$(git --literal-pathspecs -C "$_top" status --porcelain --untracked-files=all -- "$_p")" ]; then
+    _changes=$(git --literal-pathspecs -C "$_top" status --porcelain --untracked-files=all -- "$_p") || {
+      echo "receipt: git status failed for $_p, so the tree cannot be called clean" >&2
+      return 1
+    }
+    if [ -n "$_changes" ]; then
       echo "receipt: uncommitted changes under $_p" >&2
+      return 1
+    fi
+    _listed=$(git --literal-pathspecs -C "$_top" ls-files -v -- "$_p") || {
+      echo "receipt: git ls-files failed for $_p, so the tree cannot be called clean" >&2
+      return 1
+    }
+    if [ -n "$(printf '%s\n' "$_listed" | grep -v '^H ' | grep -v '^$')" ]; then
+      echo "receipt: $_p holds files marked assume-unchanged or skip-worktree, whose changes git does not report" >&2
       return 1
     fi
   done <<EOF

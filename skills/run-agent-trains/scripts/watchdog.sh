@@ -1,3 +1,6 @@
+# Alerts once per stall when runs do not overlap. Two runs that overlap just as a batch opens can
+# send a second alert for the same stall: a run that saw no open batch and is about to clear the
+# marker can remove the marker that a newer run has just created.
 LOG=${LOG:?set LOG to the orchestrator log}
 OPEN=${OPEN:?set OPEN to the batch-in-flight marker}
 MAX_MIN=${MAX_MIN:-30}

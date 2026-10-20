@@ -1,3 +1,12 @@
+# heavy-slot.sh: a best-effort limit on how many heavy commands run at once on ONE host. It is a
+# helper, not a lock service, and each of these can admit one extra job:
+#  - a job that is paused for more than a minute after it created its claim and before it wrote
+#    its pid (the claim then looks abandoned and another job takes the slot);
+#  - a job that is paused for more than RETAIN minutes between reading a slot and creating its
+#    claim (a swept claim number can come back);
+#  - a wrapper pid that the system reuses (the claim then looks alive for too long, which only
+#    delays other jobs);
+#  - a command that starts its own session, which leaves the process group the wrapper stops.
 SLOT_DIR=${SLOT_DIR:-${TMPDIR:-/tmp}/heavy-slots}
 SLOTS=${SLOTS:-2}
 RESERVED=${RESERVED:-1}
@@ -22,9 +31,8 @@ mkdir -p "$SLOT_DIR" || exit 1
 # One claim on slot N is the directory slot-N.G. G only grows, so creating slot-N.<latest+1> is the
 # single atomic step that makes a job the owner. A claim is never deleted by the job that owns it:
 # a finished claim stays as a marker (`released`), and a later claim sweeps only claims that are
-# stale and at least RETAIN minutes old. A number is therefore reused only by a job that sat for
-# more than RETAIN minutes between reading a slot and creating its claim, which is the one
-# assumption this scheme makes. A directory listing cannot prove ownership, so nothing here does.
+# stale and at least RETAIN minutes old. That keeps the common races out. The pauses listed at the
+# top are the ones it does not cover.
 slot=""       # the claim directory this wrapper owns
 child=""      # the command's pid; with a group it is also the process group id
 grouped=""    # set when the command leads its own process group
@@ -56,7 +64,7 @@ claim_stale() { # claim_stale <dir>
   [ -e "$1/released" ] && return 0
   _owner=$(cat "$1/pid" 2>/dev/null)
   if [ -z "$_owner" ]; then
-    # not recorded yet, or the owner died before it could: give it a minute
+    # not recorded yet, or the owner died before it could: give it a minute (see the header)
     [ -n "$(find "$1" -maxdepth 0 -mmin +1 2>/dev/null)" ]
     return
   fi
