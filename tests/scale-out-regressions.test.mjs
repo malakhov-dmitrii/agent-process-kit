@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readdirSync, rmSync, symlinkSync, unlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, symlinkSync, unlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { alive, git, gitRepo, read, root, run, scratch, skill, start, until } from './fixtures/scale-out-helpers.mjs';
@@ -425,15 +425,15 @@ test('a symlink that appears in the working tree above a keyed path is refused, 
 
 test('core.symlinks=false is refused, since a symlink replaced by a file holding its link text reads as clean', () => {
   const dir = receiptRepo();
-  symlinkSync('a.txt', join(dir, 'src', 'ln'));
+  symlinkSync('d.md', join(dir, 'docs', 'ln')); // outside the keyed paths, which may not hold a symlink at all
   git(dir, 'add', '.');
-  git(dir, 'commit', '-qm', 'add a symlink under src');
+  git(dir, 'commit', '-qm', 'add a symlink under docs');
   const key = receipt(dir, 'receipt_key HEAD').stdout.trim();
   assert.equal(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0);
   assert.equal(receipt(dir, 'receipt_reuse gate=pass').status, 0);
   git(dir, 'config', 'core.symlinks', 'false');
-  rmSync(join(dir, 'src', 'ln'));
-  writeFileSync(join(dir, 'src', 'ln'), 'a.txt');
+  rmSync(join(dir, 'docs', 'ln'));
+  writeFileSync(join(dir, 'docs', 'ln'), 'd.md');
   assert.equal(git(dir, 'status', '--porcelain'), '', 'git itself reports nothing for the replaced symlink');
   const result = receipt(dir, 'receipt_reuse gate=pass');
   assert.notEqual(result.status, 0, 'the receipt is not reused');
@@ -491,6 +491,114 @@ test('a tree that git cannot report on, or that hides changes, is never called c
   result = receipt(dir, 'receipt_reuse gate=pass');
   assert.notEqual(result.status, 0, 'a failing git status must not read as clean');
   assert.notEqual(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0);
+});
+
+test('a tracked symlink under a keyed path is refused, since what it points to is outside the key', () => {
+  const dir = receiptRepo();
+  const elsewhere = scratch();
+  writeFileSync(join(elsewhere, 'target.js'), 'console.log("one")\n');
+  symlinkSync(join(elsewhere, 'target.js'), join(dir, 'src', 'link.js'));
+  git(dir, 'add', '.');
+  git(dir, 'commit', '-qm', 'add a symlink inside src');
+  for (const paths of ['src', '.']) {
+    for (const body of ['receipt_key HEAD', 'receipt_clean', 'receipt_reuse gate=pass', 'receipt_write abc "$(git rev-parse HEAD)" gate=pass']) {
+      const result = receipt(dir, body, { paths });
+      assert.notEqual(result.status, 0, `${paths}: ${body}`);
+      assert.match(result.stderr, /symlink/, `${paths}: ${body}`);
+    }
+  }
+  // a symlink that is only staged is refused as well, and so is one in the commit being keyed when the index differs
+  const clean = receiptRepo();
+  const first = git(clean, 'rev-parse', 'HEAD');
+  symlinkSync(join(elsewhere, 'target.js'), join(clean, 'src', 'staged.js'));
+  git(clean, 'add', 'src/staged.js');
+  assert.notEqual(receipt(clean, 'receipt_clean', { paths: 'src' }).status, 0, 'a staged symlink');
+  git(clean, 'commit', '-qm', 'commit it');
+  git(clean, 'rm', '-q', 'src/staged.js');
+  git(clean, 'commit', '-qm', 'and remove it again');
+  assert.notEqual(receipt(clean, `receipt_key ${git(clean, 'rev-parse', 'HEAD~1')}`, { paths: 'src' }).status, 0, 'a symlink in the commit being keyed');
+  assert.equal(receipt(clean, `receipt_key ${first}`, { paths: 'src' }).status, 0, 'a commit without one is fine');
+});
+
+test('a configured filter, or a filter attribute on a keyed path, is refused, since the working file is not what git compares', () => {
+  const dir = receiptRepo();
+  writeFileSync(join(dir, 'src', 'a.txt'), 'one\n');
+  writeFileSync(join(dir, '.gitattributes'), 'src/a.txt filter=mask\n');
+  git(dir, 'config', 'filter.mask.clean', 'sed s/two/one/');
+  git(dir, 'add', '.');
+  git(dir, 'commit', '-qm', 'a file behind a clean filter');
+  writeFileSync(join(dir, 'src', 'a.txt'), 'two\n');
+  assert.equal(git(dir, 'status', '--porcelain'), '', 'git itself reports nothing, since the filter maps the change away');
+  for (const body of ['receipt_key HEAD', 'receipt_clean', 'receipt_reuse gate=pass', 'receipt_write abc "$(git rev-parse HEAD)" gate=pass']) {
+    const result = receipt(dir, body);
+    assert.notEqual(result.status, 0, body);
+    assert.match(result.stderr, /filter/, body);
+  }
+  // an attribute alone, with no filter configured, is refused too
+  const attr = receiptRepo();
+  writeFileSync(join(attr, '.gitattributes'), 'src/a.txt filter=ghost\n');
+  git(attr, 'add', '.');
+  git(attr, 'commit', '-qm', 'a filter attribute with no filter behind it');
+  const result = receipt(attr, 'receipt_key HEAD');
+  assert.notEqual(result.status, 0, 'a filter attribute on a keyed path');
+  assert.match(result.stderr, /filter/);
+  // an attribute elsewhere in the repository does not matter
+  const elsewhere = receiptRepo();
+  writeFileSync(join(elsewhere, '.gitattributes'), 'docs/d.md filter=ghost\n');
+  git(elsewhere, 'add', '.');
+  git(elsewhere, 'commit', '-qm', 'a filter attribute outside the keyed paths');
+  assert.equal(receipt(elsewhere, 'receipt_key HEAD').status, 0);
+});
+
+test('core.trustctime=false and core.checkStat=minimal are refused, since a same-size edit with its mtime restored reads as clean', () => {
+  const dir = receiptRepo();
+  const file = join(dir, 'src', 'a.txt');
+  const past = new Date(Date.now() - 3600 * 1000);
+  utimesSync(file, past, past);
+  git(dir, 'update-index', '--refresh');
+  const key = receipt(dir, 'receipt_key HEAD').stdout.trim();
+  assert.equal(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0);
+  assert.equal(receipt(dir, 'receipt_reuse gate=pass').status, 0);
+  git(dir, 'config', 'core.trustctime', 'false');
+  git(dir, 'config', 'core.checkStat', 'minimal');
+  const before = statSync(file);
+  writeFileSync(file, 'b\n');
+  utimesSync(file, before.atime, before.mtime);
+  assert.equal(git(dir, 'status', '--porcelain'), '', 'git itself reports nothing for the same-size edit');
+  const result = receipt(dir, 'receipt_reuse gate=pass');
+  assert.notEqual(result.status, 0, 'the receipt is not reused');
+  assert.match(result.stderr, /core\.(trustctime|checkStat)/);
+  assert.notEqual(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0, 'and none is written');
+
+  const each = receiptRepo();
+  const eachKey = receipt(each, 'receipt_key HEAD').stdout.trim();
+  assert.equal(receipt(each, `receipt_write ${eachKey} "$(git rev-parse HEAD)" gate=pass`).status, 0);
+  for (const [name, value, pattern] of [
+    ['core.trustctime', 'false', /core\.trustctime/],
+    ['core.checkStat', 'minimal', /core\.checkStat/],
+  ]) {
+    git(each, 'config', name, value);
+    const refused = receipt(each, 'receipt_reuse gate=pass');
+    assert.notEqual(refused.status, 0, `${name}=${value}`);
+    assert.match(refused.stderr, pattern);
+    git(each, 'config', '--unset', name);
+    assert.equal(receipt(each, 'receipt_reuse gate=pass').status, 0, `clean again without ${name}`);
+  }
+});
+
+test('the index is refreshed from content before status, and a refresh that fails means the tree is not called clean', () => {
+  const dir = receiptRepo();
+  const key = receipt(dir, 'receipt_key HEAD').stdout.trim();
+  assert.equal(receipt(dir, `receipt_write ${key} "$(git rev-parse HEAD)" gate=pass`).status, 0);
+  // a touched file with the same content gives the refresh something to write back to the index
+  const later = new Date(Date.now() + 5000);
+  utimesSync(join(dir, 'src', 'a.txt'), later, later);
+  writeFileSync(join(dir, '.git', 'index.lock'), '');
+  const result = receipt(dir, 'receipt_reuse gate=pass');
+  assert.notEqual(result.status, 0, 'a refresh that cannot write the index');
+  assert.match(result.stderr, /refresh/);
+  rmSync(join(dir, '.git', 'index.lock'));
+  assert.equal(receipt(dir, 'receipt_reuse gate=pass').status, 0, 'and it is fine again without the lock');
 });
 
 test('a receipt key that is not a hex object id never becomes a path', () => {

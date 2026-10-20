@@ -4,10 +4,17 @@
 # globs, no spaces in a name. Every function works from the repository root, whatever the
 # current directory is.
 #
-# Supported: plain repositories without submodules, with core.fileMode and core.symlinks left at
-# true, no assume-unchanged or skip-worktree entry, and no symlink at or above a keyed path. Anything
-# unusual is refused with a message rather than guessed at, because each of those makes git report a
-# change differently, or not at all, and a receipt must never vouch for code it did not see.
+# Supported: plain repositories without submodules, with core.fileMode, core.symlinks and
+# core.trustctime left at true and core.checkStat at its default, no filter configured or set by an
+# attribute on a keyed path, no assume-unchanged or skip-worktree entry, and no symlink at, above or
+# below a keyed path. Anything unusual is refused with a message rather than guessed at, because each
+# of those makes git report a change differently, or not at all, and a receipt must never vouch for
+# code it did not see.
+#
+# Threat model: receipts protect against accidents, such as a stale or dirty tree and an honest
+# agent's mistake. They do not protect against someone who reconfigures git on purpose or edits the
+# receipt files. Anything unusual that git can be told to do is refused, and the rest is trust on
+# this machine.
 #
 # A gate run is receipt_invalidate ... receipt_write in one script. receipt_invalidate leaves a
 # numbered start record for the run, and a receipt stays usable only while no start record has a
@@ -61,12 +68,22 @@ _receipt_supported() {
     echo "receipt: this repository has a submodule, and receipts do not support submodules: git does not reliably report a change inside one. Supported: plain repositories without submodules" >&2
     return 1
   fi
-  for _setting in core.fileMode core.symlinks; do
+  for _setting in core.fileMode core.symlinks core.trustctime; do
     if [ "$(git -C "$_top" config --bool "$_setting" 2>/dev/null)" = false ]; then
-      echo "receipt: $_setting is false, so a change of file mode or of symlink type would not show as a change; set it to true" >&2
+      echo "receipt: $_setting is false, so a change of file mode, of symlink type or of inode time would not show as a change; set it to true" >&2
       return 1
     fi
   done
+  if [ "$(git -C "$_top" config --get core.checkStat 2>/dev/null)" = minimal ]; then
+    echo "receipt: core.checkStat is minimal, so a same-size edit with its modification time restored would not show as a change; leave it at the default" >&2
+    return 1
+  fi
+  # A filter makes git compare something other than the file on disk, so a changed file can read
+  # as clean. This includes the filters that Git LFS installs.
+  if [ -n "$(git -C "$_top" config --get-regexp '^filter\.' 2>/dev/null)" ]; then
+    echo "receipt: a git filter is configured (filter.*), and a clean filter makes git compare something other than the file on disk" >&2
+    return 1
+  fi
   _flags=$(git -C "$_top" ls-files -v) || {
     echo "receipt: git ls-files failed, so the repository cannot be judged" >&2
     return 1
@@ -103,6 +120,31 @@ _receipt_supported() {
   done <<EOF
 $_qpaths
 EOF
+  # What is tracked under a keyed path, in the index: no symlink, whose target the key cannot see,
+  # and no filter attribute.
+  while IFS= read -r _q; do
+    _listed=$(git --literal-pathspecs -c core.quotePath=false -C "$_top" ls-files -s -- "$_q") || {
+      echo "receipt: git ls-files failed for $_q, so it cannot be judged" >&2
+      return 1
+    }
+    if printf '%s\n' "$_listed" | grep -q '^120000 '; then
+      echo "receipt: $_q holds a tracked symlink, and the key cannot see what it points to; key the real paths instead" >&2
+      return 1
+    fi
+    _names=$(printf '%s\n' "$_listed" | cut -f 2)
+    if [ -n "$_names" ]; then
+      _attrs=$(printf '%s\n' "$_names" | git -C "$_top" check-attr --stdin filter) || {
+        echo "receipt: git check-attr failed for $_q, so it cannot be judged" >&2
+        return 1
+      }
+      if [ -n "$(printf '%s\n' "$_attrs" | grep -v ': filter: unspecified$' | grep -v '^$')" ]; then
+        echo "receipt: $_q holds a file with a filter attribute, and a filter makes git compare something other than the file on disk" >&2
+        return 1
+      fi
+    fi
+  done <<EOF
+$_qpaths
+EOF
 }
 
 receipt_key() { # receipt_key [rev]  ->  prints the key; on any problem prints nothing and fails
@@ -120,6 +162,14 @@ receipt_key() { # receipt_key [rev]  ->  prints the key; on any problem prints n
 "
   _found=""
   while IFS= read -r _p; do
+    _under=$(git --literal-pathspecs -C "$_top" ls-tree -r "$_commit" -- "$_p") || {
+      echo "receipt: git ls-tree failed for $_p at $_rev" >&2
+      return 1
+    }
+    if printf '%s\n' "$_under" | grep -q '^120000 '; then
+      echo "receipt: $_p holds a symlink at $_rev, and the key cannot see what it points to; key the real paths instead" >&2
+      return 1
+    fi
     if [ "$_p" = . ]; then
       _tree=$(git -C "$_top" rev-parse --verify -q "$_commit^{tree}") && _entry="040000 tree $_tree"
     else
@@ -184,6 +234,12 @@ receipt_file() { # receipt_file <key>
 receipt_clean() { # true when the whole repository matches HEAD, untracked files included
   _receipt_supported || return 1
   _top=$(_receipt_top) || return 1
+  # Check the cached file stats against the files again, so that a stale stat cache cannot make a
+  # changed file read as unchanged. A failure here means the tree cannot be called clean.
+  git -C "$_top" update-index -q --really-refresh >/dev/null 2>&1 || {
+    echo "receipt: could not refresh the index from the files, so the tree cannot be called clean" >&2
+    return 1
+  }
   # The whole repository, not only the keyed paths: a path-limited status is what lets a new
   # untracked directory or symlink above a keyed path go unseen.
   _changes=$(git -C "$_top" status --porcelain=v1 --untracked-files=all --ignore-submodules=none) || {
